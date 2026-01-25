@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLACK CASINO | Samir Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body class="pb-24">
+
+    <header class="p-4 flex justify-between items-center border-b border-slate-800 sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md">
+        <div>
+            <h1 class="text-xl font-black text-yellow-500 italic">BLACK CASINO</h1>
+            <p id="username-display" class="text-[10px] text-slate-400 uppercase tracking-widest">Загрузка...</p>
+        </div>
+        <div class="text-right">
+            <p class="text-[10px] text-slate-400 uppercase">Баланс</p>
+            <p id="balance-display" class="text-lg font-bold text-green-400 font-mono">0 BC</p>
+        </div>
+    </header>
+
+    <main class="p-4 max-w-md mx-auto space-y-6">
+        
+        <div class="glass p-5 rounded-3xl relative overflow-hidden bg-gradient-to-br from-indigo-600/20 to-purple-600/20">
+            <h2 class="font-black italic text-lg mb-2">BLACK PASS</h2>
+            <div class="w-full bg-black/40 h-3 rounded-full overflow-hidden">
+                <div id="pass-progress" class="bg-gradient-to-r from-yellow-400 to-orange-500 h-full w-[10%] transition-all"></div>
+            </div>
+            <p class="text-[10px] mt-2 text-slate-300">Уровень 1 • 100/1000 XP</p>
+        </div>
+
+        <div class="glass p-6 rounded-3xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold">Dice 🎲</h3>
+                <span class="text-[10px] bg-yellow-500 text-black px-2 py-0.5 rounded font-bold">WIN x2.0</span>
+            </div>
+            <div class="flex gap-2 justify-center">
+                <button onclick="setBet(100)" class="bg-slate-700 px-3 py-1 rounded-lg text-xs">100</button>
+                <button onclick="setBet(500)" class="bg-slate-700 px-3 py-1 rounded-lg text-xs">500</button>
+                <button onclick="setBet(1000)" class="bg-slate-700 px-3 py-1 rounded-lg text-xs">1000</button>
+            </div>
+            <button id="play-btn" onclick="playDice()" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-2xl shadow-lg shadow-yellow-500/20 transition-all active:scale-95">
+                ИГРАТЬ <span id="current-bet">100</span> BC
+            </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div onclick="openCase('wood')" class="glass p-4 rounded-2xl text-center border-b-4 border-orange-900 active:scale-95 transition">
+                <p class="text-2xl">📦</p>
+                <p class="font-bold text-sm">Деревянный</p>
+                <p class="text-[10px] text-yellow-500">1,000 BC</p>
+            </div>
+            <div onclick="openCase('gold')" class="glass p-4 rounded-2xl text-center border-b-4 border-yellow-500 active:scale-95 transition">
+                <p class="text-2xl">🎁</p>
+                <p class="font-bold text-sm">Золотой</p>
+                <p class="text-[10px] text-yellow-500">10,000 BC</p>
+            </div>
+        </div>
+
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 p-4 flex justify-around">
+        <button class="text-yellow-500 flex flex-col items-center"><span>🎲</span><span class="text-[10px]">Игры</span></button>
+        <button class="text-slate-400 flex flex-col items-center"><span>🏦</span><span class="text-[10px]">Банк</span></button>
+        <button class="text-slate-400 flex flex-col items-center"><span>👥</span><span class="text-[10px]">Друзья</span></button>
+        <button class="text-slate-400 flex flex-col items-center"><span>🏆</span><span class="text-[10px]">Топ</span></button>
+    </nav>
+
+    <script>
+        // КОНФИГУРАЦИЯ SUPABASE
+        const SB_URL = 'https://xlrzjpzcqnjdtbuuovvz.supabase.co';
+        const SB_KEY = 'sb_publishable_SOBMj961ujDu2G45dNor9g_CsjOu_JD';
+        const supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        let currentUser = null;
+        let currentBet = 100;
+
+        async function init() {
+            // Для теста берем твой ID вручную, пока не настроили Login страницу
+            const myID = '74c3a3ad-ccec-4079-b62b-cb2bcf1359f9';
+            const { data, error } = await supabase.from('profiles').select('*').eq('id', myID).single();
+            if (data) {
+                currentUser = data;
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('balance-display').innerText = currentUser.balance.toLocaleString() + ' BC';
+            document.getElementById('username-display').innerText = currentUser.username;
+            document.getElementById('current-bet').innerText = currentBet;
+        }
+
+        function setBet(amount) {
+            currentBet = amount;
+            updateUI();
+        }
+
+        async function playDice() {
+            if (currentUser.balance < currentBet) return alert("Недостаточно средств!");
+            
+            const isWin = Math.random() > 0.6; // 40% шанс победы
+            let newBalance = currentUser.balance - currentBet;
+            
+            if (isWin) {
+                const winAmount = currentBet * 2;
+                newBalance += winAmount;
+                alert("Победа! +" + winAmount + " BC");
+            } else {
+                alert("Проигрыш!");
+            }
+
+            const { data } = await supabase.from('profiles').update({ balance: newBalance }).eq('id', currentUser.id).select().single();
+            currentUser = data;
+            updateUI();
+        }
+
+        init();
+    </script>
+</body>
+</html>
