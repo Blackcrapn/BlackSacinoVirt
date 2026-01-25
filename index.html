@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Win | Premium Gaming</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap');
+        
+        :root {
+            --accent: #fbbf24;
+            --bg-dark: #07070a;
+            --card-bg: rgba(20, 20, 25, 0.8);
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-dark);
+            color: #fff;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .btn-main {
+            background: linear-gradient(135deg, var(--accent) 0%, #d97706 100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #000;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .btn-main:active { scale: 0.95; filter: brightness(1.1); }
+
+        .nav-active { color: var(--accent) !important; position: relative; }
+        .nav-active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px; width: 5px; height: 5px;
+            background: var(--accent); border-radius: 50%;
+        }
+
+        .game-card { transition: transform 0.3s ease; }
+        .game-card:hover { transform: translateY(-5px); }
+
+        /* Анимация прогресс-бара */
+        .progress-fill {
+            transition: width 1s cubic-bezier(0.65, 0, 0.35, 1);
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        /* Кастомный скролл */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+
+        .hidden-section { display: none; }
+    </style>
+</head>
+<body class="pb-24">
+
+    <div id="result-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 hidden opacity-0 transition-opacity duration-300">
+        <div id="result-card" class="glass p-10 rounded-[40px] text-center max-w-xs w-full animate__animated">
+            <h2 id="result-title" class="text-4xl font-black mb-2 uppercase">WIN</h2>
+            <p id="result-amount" class="text-2xl font-bold text-yellow-500 mb-6">+5,000 BC</p>
+            <button onclick="closeResult()" class="btn-main w-full py-4 rounded-2xl">Круто!</button>
+        </div>
+    </div>
+
+    <div id="bet-modal" class="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 hidden">
+        <div class="glass p-8 rounded-[32px] w-[90%] max-w-sm animate__animated animate__zoomIn">
+            <h3 class="text-xl font-bold mb-4 text-center">Установить ставку</h3>
+            <input type="number" id="bet-input" value="500" min="500" class="w-full bg-black/40 border border-white/10 p-4 rounded-2xl text-center text-2xl font-black text-yellow-500 focus:outline-none focus:border-yellow-500 mb-6">
+            <button onclick="confirmBet()" class="btn-main w-full py-4 rounded-2xl">Подтвердить</button>
+        </div>
+    </div>
+
+    <header class="p-6 flex justify-between items-center sticky top-0 z-40 bg-black/40 backdrop-blur-lg">
+        <div>
+            <h1 class="text-2xl font-black italic tracking-tighter text-yellow-500 uppercase">Black Win</h1>
+            <p id="user-tag" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Player: Samir</p>
+        </div>
+        <div onclick="openBetModal()" class="cursor-pointer text-right group">
+            <p class="text-[10px] font-bold text-slate-400 uppercase">Баланс & Ставка</p>
+            <p id="balance-txt" class="text-xl font-black text-white group-hover:text-yellow-500 transition">10,000 BC</p>
+            <p id="current-bet-txt" class="text-[10px] text-yellow-500 font-bold italic">BET: 500 BC</p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4">
+        
+        <div id="section-games" class="space-y-6">
+            <div id="section-pass-mini" class="glass p-5 rounded-[32px] bg-gradient-to-r from-yellow-500/10 to-transparent">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-black italic">BLACK PASS • LVL <span id="pass-lvl">1</span></span>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase"><span id="pass-xp">0</span> / 1000 XP</span>
+                </div>
+                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                    <div id="pass-bar" class="progress-fill h-full bg-yellow-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="game-card glass p-8 rounded-[40px] space-y-6 relative overflow-hidden">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-black italic">HIGHER LOWER</h2>
+                        <button onclick="openBetModal()" class="text-[10px] bg-white/5 px-3 py-1 rounded-full font-bold">ИЗМЕНИТЬ СТАВКУ</button>
+                    </div>
+
+                    <div id="hl-display" class="bg-black/40 py-12 rounded-[32px] text-center border border-white/5">
+                        <span id="hl-num" class="text-7xl font-black text-yellow-500 tracking-tighter">?</span>
+                        <p id="hl-status" class="text-[10px] text-slate-500 uppercase mt-2 font-bold tracking-widest tracking-widest">Нажми старт</p>
+                    </div>
+
+                    <div id="hl-controls-init">
+                        <button onclick="startHighLow()" class="btn-main w-full py-5 rounded-3xl">СТАРТ ИГРЫ</button>
+                    </div>
+                    <div id="hl-controls-game" class="hidden flex gap-4">
+                        <button onclick="playHL('high')" class="flex-1 btn-main py-5 rounded-3xl">БОЛЬШЕ</button>
+                        <button onclick="playHL('low')" class="flex-1 bg-white/5 border border-white/10 font-black py-5 rounded-3xl">МЕНЬШЕ</button>
+                    </div>
+                </div>
+
+                <div class="game-card glass p-8 rounded-[40px] border-2 border-yellow-500/20">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-black italic">PVP DUEL</h2>
+                        <span class="flex h-2 w-2 rounded-full bg-green-500 animate-ping"></span>
+                    </div>
+                    
+                    <div id="pvp-init" class="mt-8 space-y-4">
+                        <input type="text" id="friend-id" placeholder="ID или Ник друга..." class="w-full bg-black/40 border border-white/10 p-5 rounded-2xl focus:outline-none focus:border-yellow-500 transition">
+                        <button onclick="connectToFriend()" class="btn-main w-full py-5 rounded-3xl">ПОДКЛЮЧИТЬСЯ</button>
+                    </div>
+
+                    <div id="pvp-active" class="hidden mt-8 flex gap-3">
+                        <div class="flex-1 space-y-3">
+                            <button class="w-full bg-blue-500/20 text-blue-400 font-bold py-4 rounded-2xl border border-blue-500/30">ЧАТ</button>
+                            <button class="w-full btn-main py-4 rounded-2xl">КОСТИ (🎲)</button>
+                            <button onclick="disconnectFriend()" class="w-full bg-red-500/10 text-red-500 py-4 rounded-2xl border border-red-500/20 text-xs font-bold">ОТКЛЮЧИТЬСЯ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-cases" class="hidden-section text-center py-20">
+            <h2 class="text-4xl font-black italic text-yellow-500 mb-4">CASES</h2>
+            <p class="text-slate-400">Раздел кейсов в разработке...</p>
+        </div>
+        
+        <div id="section-friends" class="hidden-section text-center py-20">
+            <h2 class="text-4xl font-black italic text-yellow-500 mb-4">FRIENDS</h2>
+            <p class="text-slate-400">Список ваших друзей будет здесь.</p>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-lg glass p-3 rounded-[35px] flex justify-around items-center z-50">
+        <button onclick="showSection('games')" id="nav-games" class="nav-item nav-active flex flex-col items-center gap-1 p-2">
+            <span class="text-2xl">🎲</span><span class="text-[9px] font-extrabold uppercase">Игры</span>
+        </button>
+        <button onclick="showSection('cases')" id="nav-cases" class="nav-item flex flex-col items-center gap-1 p-2 text-slate-500">
+            <span class="text-2xl">📦</span><span class="text-[9px] font-extrabold uppercase">Кейсы</span>
+        </button>
+        <button onclick="showSection('friends')" id="nav-friends" class="nav-item flex flex-col items-center gap-1 p-2 text-slate-500">
+            <span class="text-2xl">👥</span><span class="text-[9px] font-extrabold uppercase">Друзья</span>
+        </button>
+    </nav>
+
+    <script>
+        // --- CONFIG ---
+        const SB_URL = 'https://xlrzjpzcqnjdtbuuovvz.supabase.co';
+        const SB_KEY = 'sb_publishable_SOBMj961ujDu2G45dNor9g_CsjOu_JD';
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
+        let user = null;
+        let currentBet = 500;
+        let hlBaseNum = null;
+
+        // --- CORE ---
+        async function init() {
+            const myID = '74c3a3ad-ccec-4079-b62b-cb2bcf1359f9'; // Твой UID
+            const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', myID).single();
+            if (data) {
+                user = data;
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('balance-txt').innerText = user.balance.toLocaleString() + ' BC';
+            document.getElementById('current-bet-txt').innerText = `BET: ${currentBet.toLocaleString()} BC`;
+            document.getElementById('user-tag').innerText = `Player: ${user.username}`;
+            
+            // Update Pass
+            const lvl = Math.floor(user.xp / 1000) + 1;
+            const progress = (user.xp % 1000) / 10;
+            document.getElementById('pass-lvl').innerText = lvl;
+            document.getElementById('pass-xp').innerText = user.xp % 1000;
+            document.getElementById('pass-bar').style.width = progress + '%';
+        }
+
+        // --- NAVIGATION ---
+        function showSection(name) {
+            const sections = ['games', 'cases', 'friends'];
+            sections.forEach(s => {
+                document.getElementById(`section-${s}`).classList.add('hidden-section');
+                document.getElementById(`nav-${s}`).classList.remove('nav-active', 'text-slate-500');
+                document.getElementById(`nav-${s}`).classList.add('text-slate-500');
+            });
+            document.getElementById(`section-${name}`).classList.remove('hidden-section');
+            document.getElementById(`nav-${name}`).classList.add('nav-active');
+            document.getElementById(`nav-${name}`).classList.remove('text-slate-500');
+        }
+
+        // --- BET LOGIC ---
+        function openBetModal() { 
+            document.getElementById('bet-modal').classList.remove('hidden');
+        }
+
+        function confirmBet() {
+            const val = parseInt(document.getElementById('bet-input').value);
+            if (val >= 500) {
+                currentBet = val;
+                updateUI();
+                document.getElementById('bet-modal').classList.add('hidden');
+            } else {
+                alert("Минимальная ставка 500 BC");
+            }
+        }
+
+        // --- NOTIFICATIONS ---
+        function showGameResult(type, amount) {
+            const overlay = document.getElementById('result-overlay');
+            const card = document.getElementById('result-card');
+            const title = document.getElementById('result-title');
+            const amt = document.getElementById('result-amount');
+
+            title.innerText = type === 'win' ? 'WIN' : 'LOSS';
+            title.style.color = type === 'win' ? '#fbbf24' : '#ef4444';
+            amt.innerText = (type === 'win' ? '+' : '-') + amount.toLocaleString() + ' BC';
+            
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            card.classList.add(type === 'win' ? 'animate__bounceIn' : 'animate__shakeX');
+        }
+
+        function closeResult() {
+            const overlay = document.getElementById('result-overlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+
+        // --- GAME: HIGHER LOWER ---
+        function startHighLow() {
+            hlBaseNum = Math.floor(Math.random() * 90) + 5;
+            document.getElementById('hl-num').innerText = hlBaseNum;
+            document.getElementById('hl-status').innerText = "Выбирай!";
+            document.getElementById('hl-controls-init').classList.add('hidden');
+            document.getElementById('hl-controls-game').classList.remove('hidden');
+        }
+
+        async function playHL(choice) {
+            if (user.balance < currentBet) return alert("Недостаточно средств!");
+            
+            const nextNum = Math.floor(Math.random() * 99) + 1;
+            let win = (choice === 'high' && nextNum > hlBaseNum) || (choice === 'low' && nextNum < hlBaseNum);
+            
+            if (nextNum === hlBaseNum) {
+                alert("Ничья! Числа совпали.");
+                return startHighLow();
+            }
+
+            const winAmt = win ? currentBet : currentBet;
+            const newBalance = win ? user.balance + currentBet : user.balance - currentBet;
+            const newXP = user.xp + 50;
+
+            showGameResult(win ? 'win' : 'loss', currentBet);
+
+            // Update DB
+            const { data } = await supabaseClient.from('profiles').update({ 
+                balance: newBalance, 
+                xp: newXP 
+            }).eq('id', user.id).select().single();
+            
+            user = data;
+            updateUI();
+            
+            // Reset game state
+            document.getElementById('hl-num').innerText = nextNum;
+            document.getElementById('hl-controls-init').classList.remove('hidden');
+            document.getElementById('hl-controls-game').classList.add('hidden');
+        }
+
+        // --- PVP SYSTEM ---
+        function connectToFriend() {
+            const id = document.getElementById('friend-id').value;
+            if (!id) return;
+            document.getElementById('pvp-init').classList.add('hidden');
+            document.getElementById('pvp-active').classList.remove('hidden');
+            document.getElementById('pvp-active').classList.add('animate__animated', 'animate__fadeInRight');
+        }
+
+        function disconnectFriend() {
+            document.getElementById('pvp-init').classList.remove('hidden');
+            document.getElementById('pvp-active').classList.add('hidden');
+        }
+
+        init();
+    </script>
+</body>
+</html>
