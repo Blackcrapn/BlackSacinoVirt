@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Black Win | Samir Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Inter:wght@400;700&display=swap');
+        :root { --red: #ff0000; --dark: #050505; }
+        body { font-family: 'Inter', sans-serif; background: var(--dark); color: white; -webkit-tap-highlight-color: transparent; }
+        .font-black { font-family: 'Montserrat', sans-serif; font-weight: 900; }
+        .red-btn { background: linear-gradient(90deg, #ff0000, #a00000); transition: 0.2s; text-transform: uppercase; font-weight: 900; }
+        .red-btn:active { transform: scale(0.95); filter: brightness(1.2); }
+        .glass { background: #0f0f0f; border: 1px solid rgba(255, 0, 0, 0.15); box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.3s; }
+        .nav-active { color: var(--red); filter: drop-shadow(0 0 5px var(--red)); }
+        input { background: #151515 !important; border: 1px solid #333 !important; color: white !important; outline: none; text-align: center; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="pb-28">
+
+    <div id="auth-screen" class="fixed inset-0 z-[200] bg-black flex items-center justify-center p-6">
+        <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center">
+            <h1 class="font-black text-3xl text-red-600 mb-2 italic tracking-tighter">BLACK WIN</h1>
+            <p class="text-gray-500 text-[10px] uppercase font-bold mb-8">Система регистрации и входа</p>
+            <div class="space-y-4">
+                <input type="text" id="auth-nick" placeholder="НИКНЕЙМ" class="w-full p-5 rounded-2xl font-bold">
+                <input type="password" id="auth-pass" placeholder="ПАРОЛЬ" class="w-full p-5 rounded-2xl font-bold">
+                <button onclick="smartAuth()" class="red-btn w-full py-5 rounded-2xl shadow-lg">ВОЙТИ / СОЗДАТЬ</button>
+            </div>
+            <p id="auth-error" class="text-red-500 text-xs mt-4 hidden"></p>
+        </div>
+    </div>
+
+    <div id="pvp-modal" class="fixed inset-0 z-[300] bg-black/90 flex items-center justify-center p-6 hidden">
+        <div class="glass p-8 rounded-[35px] text-center w-full max-w-xs">
+            <h3 class="font-black text-xl mb-2 text-red-600">ВЫЗОВ НА БОЙ!</h3>
+            <p id="pvp-desc" class="text-gray-400 mb-8 text-sm"></p>
+            <div class="flex gap-4">
+                <button id="pvp-accept" class="flex-1 red-btn py-4 rounded-2xl">ПРИНЯТЬ</button>
+                <button onclick="closePvp()" class="flex-1 bg-white/10 py-4 rounded-2xl font-bold">ОТКАЗ</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="p-6 flex justify-between items-center sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
+        <div><h1 class="font-black text-lg text-red-600 italic">BLACK WIN</h1><p id="ui-nick" class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">GUEST</p></div>
+        <div class="text-right"><p id="ui-balance" class="text-xl font-black italic text-white">0 BC</p><p id="ui-mult" class="text-[9px] text-red-600 font-black tracking-tighter">MULTI: x1.0</p></div>
+    </header>
+
+    <main class="p-4 max-w-2xl mx-auto">
+        <section id="s-games" class="section active space-y-6">
+            <div class="glass p-6 rounded-[30px] cursor-pointer border-l-4 border-red-600" onclick="showSection('pass')">
+                <div class="flex justify-between items-end mb-3"><span class="font-black text-xs">BLACK PASS • LVL <span id="ui-level">1</span></span><span class="text-[10px] text-gray-500" id="ui-xp-val">0/1000 XP</span></div>
+                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden"><div id="ui-bar" class="bg-red-600 h-full transition-all duration-500" style="width: 0%"></div></div>
+            </div>
+            <div class="glass p-8 rounded-[40px] text-center space-y-6">
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Игра Больше / Меньше</p>
+                <div class="bg-black py-12 rounded-[35px] border border-red-600/10 shadow-inner"><span id="hl-num" class="text-8xl font-black text-red-600 tracking-tighter italic">?</span></div>
+                <div id="hl-setup"><input type="number" id="hl-bet" value="1000" class="w-full p-5 rounded-3xl text-xl font-black mb-4"><button onclick="startHL()" class="red-btn w-full py-5 rounded-[28px] shadow-lg">ПОСТАВИТЬ BC</button></div>
+                <div id="hl-action" class="hidden flex gap-4"><button onclick="playHL('high')" class="flex-1 red-btn py-6 rounded-[28px]">БОЛЬШЕ</button><button onclick="playHL('low')" class="flex-1 bg-white/10 py-6 rounded-[28px] font-black uppercase">МЕНЬШЕ</button></div>
+            </div>
+        </section>
+
+        <section id="s-store" class="section space-y-4">
+            <h2 class="font-black text-center text-xl py-4 italic uppercase">МАГАЗИН КЕЙСОВ</h2>
+            <div id="case-list" class="space-y-3"></div>
+        </section>
+
+        <section id="s-bank" class="section">
+            <div class="glass p-10 rounded-[40px] text-center border-t-4 border-red-600">
+                <h2 class="font-black text-xl mb-10 italic">BLACK BANK</h2>
+                <p id="ui-bank-balance" class="text-5xl font-black text-red-600 mb-12">0 BC</p>
+                <div class="grid grid-cols-2 gap-4"><button onclick="bankAction('dep')" class="red-btn py-5 rounded-2xl">ПОЛОЖИТЬ</button><button onclick="bankAction('with')" class="bg-white/10 py-5 rounded-2xl font-bold">СНЯТЬ</button></div>
+            </div>
+        </section>
+
+        <section id="s-social" class="section space-y-6">
+            <div class="glass p-6 rounded-[35px] space-y-4">
+                <h3 class="font-black text-xs text-gray-500 uppercase">Поиск игрока</h3>
+                <input type="text" id="target-nick" placeholder="НИКНЕЙМ" class="w-full p-4 rounded-2xl font-bold">
+                <div class="flex gap-2">
+                    <button onclick="sendReq('pvp_req')" class="flex-1 red-btn py-4 rounded-xl text-xs">PVP КОСТИ</button>
+                    <button onclick="sendReq('friend_req')" class="flex-1 bg-white/5 py-4 rounded-xl text-xs">В ДРУЗЬЯ</button>
+                </div>
+            </div>
+            <div class="glass p-6 rounded-[35px]"><h3 class="font-black text-[10px] text-red-600 uppercase mb-4">История активностей</h3><div id="activity-feed" class="space-y-3 text-xs opacity-60"></div></div>
+        </section>
+
+        <section id="s-top" class="section space-y-2"><h2 class="font-black text-center text-xl py-4 italic">ЛИДЕРЫ МИРА</h2><div id="leaderboard" class="space-y-2"></div></section>
+
+        <section id="s-pass" class="section space-y-3 h-[60vh] overflow-y-auto pr-2"><h2 class="font-black text-center text-xl py-4 italic">BLACK PASS REWARDS</h2><div id="pass-list" class="space-y-2"></div></section>
+    </main>
+
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-md bg-black/90 backdrop-blur-2xl border border-white/10 p-2 rounded-[35px] flex justify-around items-center z-50">
+        <button onclick="showSection('games')" id="n-games" class="nav-active flex flex-col items-center p-3 gap-1"><span class="text-xl">🎲</span><span class="text-[8px] font-black">ИГРЫ</span></button>
+        <button onclick="showSection('store')" id="n-store" class="flex flex-col items-center p-3 gap-1"><span class="text-xl">📦</span><span class="text-[8px] font-black">КЕЙСЫ</span></button>
+        <button onclick="showSection('bank')" id="n-bank" class="flex flex-col items-center p-3 gap-1"><span class="text-xl">🏦</span><span class="text-[8px] font-black">БАНК</span></button>
+        <button onclick="showSection('social')" id="n-social" class="flex flex-col items-center p-3 gap-1"><span class="text-xl">👥</span><span class="text-[8px] font-black">ОНЛАЙН</span></button>
+        <button onclick="showSection('top')" id="n-top" class="flex flex-col items-center p-3 gap-1"><span class="text-xl">🏆</span><span class="text-[8px] font-black">ТОП</span></button>
+    </nav>
+
+    <script>
+        const SB_URL = 'https://xlrzjpzcqnjdtbuuovvz.supabase.co';
+        const SB_KEY = 'sb_publishable_SOBMj961ujDu2G45dNor9g_CsjOu_JD';
+        const sb = supabase.createClient(SB_URL, SB_KEY);
+
+        let u = null;
+        let hlBase = 0;
+        const CASES = [
+            { id: 'wood', name: 'ДЕРЕВЯННЫЙ', price: 5000, color: 'orange-900', min: 1000, max: 12000 },
+            { id: 'elite', name: 'ЭЛИТНЫЙ', price: 50000, color: 'red-600', min: 20000, max: 150000 },
+            { id: 'black', name: 'BLACK WIN', price: 500000, color: 'white', min: 50000, max: 4000000 }
+        ];
+
+        // --- УМНАЯ АВТОРИЗАЦИЯ (ИСПРАВЛЕННАЯ) ---
+        async function smartAuth() {
+            const nick = document.getElementById('auth-nick').value.trim();
+            const pass = document.getElementById('auth-pass').value.trim();
+            const errEl = document.getElementById('auth-error');
+            
+            if (!nick || !pass) return showAuthErr("Введи данные!");
+
+            const { data, error } = await sb.from('profiles').select('*').eq('username', nick).maybeSingle();
+
+            if (error) return showAuthErr("Ошибка связи с базой");
+
+            if (data) {
+                if (data.password === pass) {
+                    u = data; loginSuccess();
+                } else {
+                    showAuthErr("Неверный пароль!");
+                }
+            } else {
+                // СОЗДАНИЕ АККАУНТА (БЕЗ EMAIL)
+                const { data: newUser, error: regErr } = await sb.from('profiles').insert([
+                    { username: nick, password: pass, balance: 10000 }
+                ]).select().single();
+
+                if (regErr) return showAuthErr("Ник уже занят или ошибка БД");
+                u = newUser;
+                loginSuccess();
+            }
+        }
+
+        function showAuthErr(txt) {
+            const el = document.getElementById('auth-error');
+            el.innerText = txt; el.classList.remove('hidden');
+        }
+
+        function loginSuccess() {
+            document.getElementById('auth-screen').classList.add('hidden'); // Скрываем, а не удаляем для стабильности
+            updateUI(); renderCases(); renderPass(); loadTop(); initRealtime();
+        }
+
+        function updateUI() {
+            if (!u) return;
+            document.getElementById('ui-nick').innerText = u.username;
+            document.getElementById('ui-balance').innerText = u.balance.toLocaleString() + ' BC';
+            document.getElementById('ui-bank-balance').innerText = u.bank_balance.toLocaleString() + ' BC';
+            document.getElementById('ui-mult').innerText = `MULTI: x${u.multiplier.toFixed(1)}`;
+            document.getElementById('ui-level').innerText = u.level;
+            const xpProgress = (u.xp % 1000) / 10;
+            document.getElementById('ui-bar').style.width = xpProgress + '%';
+            document.getElementById('ui-xp-val').innerText = `${u.xp % 1000}/1000 XP`;
+        }
+
+        function showSection(name) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+            document.getElementById('s-'+name).classList.add('active');
+            document.getElementById('n-'+name).classList.add('nav-active');
+            if (name === 'top') loadTop();
+        }
+
+        // --- ИГРА: БОЛЬШЕ/МЕНЬШЕ ---
+        function startHL() {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            if (u.balance < bet) return alert("Не хватает BC!");
+            if (bet < 100) return alert("Мин. ставка 100 BC");
+            hlBase = Math.floor(Math.random() * 80) + 10;
+            document.getElementById('hl-num').innerText = hlBase;
+            document.getElementById('hl-setup').classList.add('hidden');
+            document.getElementById('hl-action').classList.remove('hidden');
+        }
+
+        async function playHL(choice) {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            const next = Math.floor(Math.random() * 100) + 1;
+            if (next === hlBase) return playHL(choice);
+
+            const win = (choice === 'high' && next > hlBase) || (choice === 'low' && next < hlBase);
+            const prize = win ? Math.floor(bet * u.multiplier) : -bet;
+
+            const { data } = await sb.from('profiles').update({ 
+                balance: u.balance + prize,
+                xp: u.xp + (win ? 150 : 30),
+                level: Math.floor((u.xp + (win ? 150 : 30)) / 1000) + 1
+            }).eq('username', u.username).select().single();
+
+            u = data; updateUI();
+            alert(win ? `WIN! Выпало ${next} (+${prize} BC)` : `LOSS! Выпало ${next} (-${bet} BC)`);
+            document.getElementById('hl-num').innerText = '?';
+            document.getElementById('hl-setup').classList.remove('hidden');
+            document.getElementById('hl-action').classList.add('hidden');
+        }
+
+        // --- МАГАЗИН И БАНК ---
+        function renderCases() {
+            document.getElementById('case-list').innerHTML = CASES.map(c => `
+                <div class="glass p-5 rounded-3xl flex justify-between items-center border-b-2 border-${c.color}">
+                    <div><p class="font-black italic text-sm">${c.name}</p><p class="text-gray-500 text-[10px]">${c.price.toLocaleString()} BC</p></div>
+                    <button onclick="openCase('${c.id}', ${c.price})" class="red-btn px-6 py-3 rounded-xl text-[10px]">ОТКРЫТЬ</button>
+                </div>
+            `).join('');
+        }
+
+        async function openCase(id, price) {
+            if (u.balance < price) return alert("Мало BC!");
+            const c = CASES.find(x => x.id === id);
+            const win = Math.floor(Math.random() * (c.max - c.min)) + c.min;
+            const { data } = await sb.from('profiles').update({ balance: u.balance - price + win, xp: u.xp + 200 }).eq('username', u.username).select().single();
+            u = data; updateUI(); alert(`ВЫПАЛО: ${win.toLocaleString()} BC`);
+        }
+
+        async function bankAction(type) {
+            const val = parseInt(prompt("Сумма:"));
+            if (!val || val <= 0) return;
+            let nB = u.balance, nBk = u.bank_balance;
+            if (type === 'dep') { if(val > u.balance) return; nB -= val; nBk += val; }
+            else { if(val > u.bank_balance) return; nB += val; nBk -= val; }
+            const { data } = await sb.from('profiles').update({ balance: nB, bank_balance: nBk }).eq('username', u.username).select().single();
+            u = data; updateUI();
+        }
+
+        // --- ОНЛАЙН / PVP ---
+        async function sendReq(type) {
+            const to = document.getElementById('target-nick').value.trim();
+            if (!to || to === u.username) return alert("Ник указан неверно");
+            let bet = 0;
+            if (type === 'pvp_req') {
+                bet = parseInt(prompt("Ставка для боя:"));
+                if (u.balance < bet) return alert("Нет денег");
+            }
+            await sb.from('interactions').insert([{ from_user: u.username, to_user: to, type, bet }]);
+            alert("Запрос отправлен!");
+        }
+
+        function initRealtime() {
+            sb.channel('pvp').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, p => {
+                const req = p.new;
+                if (req.to_user === u.username && req.status === 'pending') {
+                    document.getElementById('pvp-modal').classList.remove('hidden');
+                    document.getElementById('pvp-desc').innerText = `${req.from_user} вызывает тебя! ${req.bet > 0 ? 'Ставка: ' + req.bet : ''}`;
+                    document.getElementById('pvp-accept').onclick = () => acceptPvp(req);
+                }
+            }).subscribe();
+        }
+
+        async function acceptPvp(req) {
+            if (u.balance < req.bet) return alert("Денег нет!");
+            const win = Math.random() > 0.5;
+            const prize = req.bet;
+            const { data } = await sb.from('profiles').update({ balance: u.balance + (win ? prize : -prize) }).eq('username', u.username).select().single();
+            u = data; updateUI();
+            await sb.from('interactions').update({ status: 'accepted' }).eq('id', req.id);
+            alert(win ? "ТЫ ВЫИГРАЛ В КОСТИ!" : "ТЫ ПРОИГРАЛ В КОСТИ!");
+            closePvp();
+        }
+        function closePvp() { document.getElementById('pvp-modal').classList.add('hidden'); }
+
+        async function loadTop() {
+            const { data } = await sb.from('profiles').select('username, balance').order('balance', { ascending: false }).limit(10);
+            document.getElementById('leaderboard').innerHTML = data.map((it, i) => `<div class="glass p-4 rounded-2xl flex justify-between items-center"><span class="font-black text-red-600">#${i+1}</span><span class="font-bold flex-1 ml-4">${it.username}</span><span class="font-black italic">${it.balance.toLocaleString()} BC</span></div>`).join('');
+        }
+
+        function renderPass() {
+            let h = '';
+            for(let i=1; i<=40; i++) {
+                let r = `${i*10000} BC`;
+                if(i%10 === 0) r = "MEGA CASE";
+                if(i >= 35) r = "TITUL X5.0";
+                h += `<div class="glass p-4 rounded-2xl flex justify-between items-center opacity-${u.level >= i ? '100' : '30'}"><span class="font-black text-xs">LVL ${i}</span><span class="text-[9px] font-black text-red-600">${r}</span><span>${u.level >= i ? '✅' : '🔒'}</span></div>`;
+            }
+            document.getElementById('pass-list').innerHTML = h;
+        }
+    </script>
+</body>
+</html>
