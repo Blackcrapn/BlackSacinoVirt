@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Black Win | Crimson Global</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Inter:wght@400;700&display=swap');
+        :root { --red: #ff0000; --dark: #050505; --card: #0f0f0f; }
+        body { font-family: 'Inter', sans-serif; background: var(--dark); color: white; -webkit-tap-highlight-color: transparent; }
+        .font-main { font-family: 'Montserrat', sans-serif; }
+        .red-btn { background: linear-gradient(90deg, #ff0000, #8b0000); transition: 0.2s; font-weight: 900; text-transform: uppercase; }
+        .red-btn:active { transform: scale(0.96); filter: brightness(1.2); }
+        .glass { background: var(--card); border: 1px solid rgba(255, 0, 0, 0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+        .nav-item { color: #444; transition: 0.3s; }
+        .nav-active { color: var(--red); filter: drop-shadow(0 0 5px var(--red)); }
+        .section { display: none; }
+        .section.active { display: block; animation: fadeInUp 0.4s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        input { background: #1a1a1a !important; border: 1px solid #333 !important; color: white !important; outline: none; text-align: center; }
+        input:focus { border-color: var(--red) !important; }
+    </style>
+</head>
+<body class="pb-28">
+
+    <div id="auth-screen" class="fixed inset-0 z-[200] bg-black flex items-center justify-center p-6">
+        <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center animate__animated animate__zoomIn">
+            <h1 class="font-main text-3xl font-black text-red-600 mb-2 italic tracking-tighter">BLACK WIN</h1>
+            <p class="text-gray-500 text-[10px] uppercase tracking-widest mb-8 font-bold">Вход по Никнейму</p>
+            <div class="space-y-4">
+                <input type="text" id="auth-nick" placeholder="Ваш никнейм" class="w-full p-5 rounded-2xl font-bold text-lg">
+                <input type="password" id="auth-pass" placeholder="Пароль" class="w-full p-5 rounded-2xl font-bold text-lg">
+                <button onclick="smartAuth()" class="red-btn w-full py-5 rounded-2xl shadow-lg shadow-red-600/20">ВОЙТИ / СОЗДАТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 z-[300] px-8 py-4 rounded-2xl font-black hidden animate__animated"></div>
+
+    <header class="p-6 flex justify-between items-center sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5">
+        <div>
+            <h1 class="font-main text-lg font-black text-red-600 italic">BLACK WIN</h1>
+            <p id="ui-nick" class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">---</p>
+        </div>
+        <div class="text-right">
+            <p id="ui-balance" class="text-xl font-black italic">0 BC</p>
+            <p id="ui-multiplier" class="text-[9px] text-red-600 font-black">MULTI: x1.0</p>
+        </div>
+    </header>
+
+    <main class="p-4 max-w-2xl mx-auto">
+        
+        <section id="s-games" class="section active space-y-6">
+            <div class="glass p-6 rounded-[35px] relative overflow-hidden cursor-pointer" onclick="showSection('pass')">
+                <div class="flex justify-between items-end mb-4 relative z-10">
+                    <h2 class="font-main text-xl font-black italic">BLACK PASS</h2>
+                    <span class="text-xs font-bold">LEVEL <span id="ui-level">1</span></span>
+                </div>
+                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                    <div id="ui-bar" class="bg-red-600 h-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="glass p-8 rounded-[40px] text-center space-y-6">
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Higher Lower Game</p>
+                <div class="bg-black/50 py-12 rounded-[35px] border border-red-600/10">
+                    <span id="hl-num" class="text-8xl font-black text-red-600 italic tracking-tighter">?</span>
+                </div>
+                <div id="hl-setup">
+                    <input type="number" id="hl-bet" value="500" min="500" class="w-full p-5 rounded-3xl text-xl font-black mb-4">
+                    <button onclick="startHL()" class="red-btn w-full py-5 rounded-[28px]">СТАВИТЬ</button>
+                </div>
+                <div id="hl-action" class="hidden flex gap-4">
+                    <button onclick="playHL('high')" class="flex-1 red-btn py-6 rounded-[28px]">ВЫШЕ</button>
+                    <button onclick="playHL('low')" class="flex-1 bg-white/5 border border-white/10 font-black py-6 rounded-[28px] uppercase">НИЖЕ</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="s-store" class="section space-y-4">
+            <h2 class="font-main text-center text-xl font-black py-4 italic">МАГАЗИН КЕЙСОВ</h2>
+            <div id="case-list" class="grid grid-cols-1 gap-4"></div>
+        </section>
+
+        <section id="s-bank" class="section">
+            <div class="glass p-10 rounded-[40px] text-center">
+                <h2 class="font-main text-xl font-black mb-10 italic">BLACK BANK</h2>
+                <p id="ui-bank-balance" class="text-5xl font-black text-red-600 mb-12">0 BC</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="bankAction('dep')" class="red-btn py-5 rounded-2xl">ВКЛАД</button>
+                    <button onclick="bankAction('with')" class="bg-white/5 border border-white/10 py-5 rounded-2xl font-bold">СНЯТЬ</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="s-top" class="section space-y-2">
+            <h2 class="font-main text-center text-xl font-black py-4 italic">ТОП ИГРОКОВ</h2>
+            <div id="leaderboard" class="space-y-2"></div>
+        </section>
+
+        <section id="s-pass" class="section space-y-3 h-[65vh] overflow-y-auto pr-2">
+            <h2 class="font-main text-center text-xl font-black py-4 italic">BLACK PASS REWARDS</h2>
+            <div id="pass-rewards" class="space-y-2"></div>
+        </section>
+    </main>
+
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-black/80 backdrop-blur-2xl border border-white/10 p-2 rounded-[35px] flex justify-around items-center z-50">
+        <button onclick="showSection('games')" id="n-games" class="nav-item nav-active flex flex-col items-center p-3 gap-1">
+            <span class="text-xl">🎲</span><span class="text-[8px] font-black uppercase">Игры</span>
+        </button>
+        <button onclick="showSection('store')" id="n-store" class="nav-item flex flex-col items-center p-3 gap-1">
+            <span class="text-xl">📦</span><span class="text-[8px] font-black uppercase">Кейсы</span>
+        </button>
+        <button onclick="showSection('bank')" id="n-bank" class="nav-item flex flex-col items-center p-3 gap-1">
+            <span class="text-xl">🏦</span><span class="text-[8px] font-black uppercase">Банк</span>
+        </button>
+        <button onclick="showSection('top')" id="n-top" class="nav-item flex flex-col items-center p-3 gap-1">
+            <span class="text-xl">🏆</span><span class="text-[8px] font-black uppercase">Топ</span>
+        </button>
+    </nav>
+
+    <script>
+        const SB_URL = 'https://xlrzjpzcqnjdtbuuovvz.supabase.co';
+        const SB_KEY = 'sb_publishable_SOBMj961ujDu2G45dNor9g_CsjOu_JD';
+        const sb = supabase.createClient(SB_URL, SB_KEY);
+
+        let u = null;
+        let hlBaseNum = 0;
+        const CASES = [
+            { id: 'wood', name: 'Деревянный', price: 5000, color: 'orange-900', min: 1000, max: 12000 },
+            { id: 'elite', name: 'Элитный', price: 50000, color: 'red-600', min: 10000, max: 150000 },
+            { id: 'black', name: 'Black Win', price: 500000, color: 'white', min: 50000, max: 3000000 }
+        ];
+
+        // УМНАЯ АВТОРИЗАЦИЯ
+        async function smartAuth() {
+            const nick = document.getElementById('auth-nick').value.trim();
+            const pass = document.getElementById('auth-pass').value.trim();
+            if (!nick || !pass) return notify("Введите все данные!", false);
+
+            const { data, error } = await sb.from('profiles').select('*').eq('username', nick).single();
+
+            if (data) {
+                if (data.password === pass) {
+                    u = data;
+                    loginSuccess();
+                } else {
+                    notify("Неверный пароль!", false);
+                }
+            } else {
+                const { data: newUser, error: regErr } = await sb.from('profiles').insert([
+                    { username: nick, password: pass, balance: 10000 }
+                ]).select().single();
+                if (regErr) return notify("Ошибка регистрации", false);
+                u = newUser;
+                loginSuccess();
+            }
+        }
+
+        function loginSuccess() {
+            document.getElementById('auth-screen').remove(); // УДАЛЯЕМ ОКНО ВХОДА
+            updateUI();
+            renderCases();
+            renderPass();
+            loadLeaderboard();
+            notify(`С возвращением, ${u.username}!`, true);
+        }
+
+        function updateUI() {
+            if (!u) return;
+            document.getElementById('ui-nick').innerText = u.username;
+            document.getElementById('ui-balance').innerText = u.balance.toLocaleString() + ' BC';
+            document.getElementById('ui-bank-balance').innerText = u.bank_balance.toLocaleString() + ' BC';
+            document.getElementById('ui-multiplier').innerText = `MULTI: x${u.multiplier.toFixed(1)}`;
+            document.getElementById('ui-level').innerText = u.level;
+            document.getElementById('ui-bar').style.width = (u.xp % 1000) / 10 + '%';
+        }
+
+        function showSection(name) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('nav-active'));
+            document.getElementById('s-'+name).classList.add('active');
+            document.getElementById('n-'+name).classList.add('nav-active');
+            if(name === 'top') loadLeaderboard();
+        }
+
+        function notify(msg, isWin) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.className = `fixed top-10 left-1/2 -translate-x-1/2 z-[300] px-8 py-4 rounded-2xl font-black block animate__animated animate__fadeInDown ${isWin ? 'bg-green-600' : 'bg-red-600'}`;
+            setTimeout(() => { t.classList.replace('animate__fadeInDown', 'animate__fadeOutUp'); setTimeout(() => t.classList.add('hidden'), 500); }, 3000);
+        }
+
+        // HIGHER LOWER
+        function startHL() {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            if (u.balance < bet) return notify("Недостаточно средств!", false);
+            hlBaseNum = Math.floor(Math.random() * 80) + 10;
+            document.getElementById('hl-num').innerText = hlBaseNum;
+            document.getElementById('hl-setup').classList.add('hidden');
+            document.getElementById('hl-action').classList.remove('hidden');
+        }
+
+        async function playHL(choice) {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            const nextNum = Math.floor(Math.random() * 100) + 1;
+            if (nextNum === hlBaseNum) return playHL(choice);
+
+            const win = (choice === 'high' && nextNum > hlBaseNum) || (choice === 'low' && nextNum < hlBaseNum);
+            const prize = win ? Math.floor(bet * u.multiplier) : -bet;
+
+            const { data } = await sb.from('profiles').update({ 
+                balance: u.balance + prize,
+                xp: u.xp + (win ? 100 : 20),
+                level: Math.floor((u.xp + (win ? 100 : 20)) / 1000) + 1
+            }).eq('username', u.username).select().single();
+
+            u = data; updateUI();
+            notify(win ? `WIN! Выпало ${nextNum} (+${prize} BC)` : `LOSS! Выпало ${nextNum} (-${bet} BC)`, win);
+            
+            document.getElementById('hl-num').innerText = '?';
+            document.getElementById('hl-setup').classList.remove('hidden');
+            document.getElementById('hl-action').classList.add('hidden');
+        }
+
+        // CASES
+        function renderCases() {
+            document.getElementById('case-list').innerHTML = CASES.map(c => `
+                <div class="glass p-6 rounded-[30px] flex justify-between items-center border-b-2 border-${c.color}">
+                    <div><p class="font-black italic">${c.name}</p><p class="text-neutral-500 text-xs">${c.price.toLocaleString()} BC</p></div>
+                    <button onclick="openCase('${c.id}', ${c.price})" class="red-btn px-8 py-3 rounded-2xl text-xs">ОТКРЫТЬ</button>
+                </div>
+            `).join('');
+        }
+
+        async function openCase(id, price) {
+            if (u.balance < price) return notify("Недостаточно средств!", false);
+            const c = CASES.find(x => x.id === id);
+            const win = Math.floor(Math.random() * (c.max - c.min)) + c.min;
+            const { data } = await sb.from('profiles').update({ balance: u.balance - price + win, xp: u.xp + 200 }).eq('username', u.username).select().single();
+            u = data; updateUI();
+            notify(`Вам выпало ${win.toLocaleString()} BC!`, win > price);
+        }
+
+        // BANK
+        async function bankAction(type) {
+            const amt = parseInt(prompt("Сумма операции:"));
+            if (!amt || amt <= 0) return;
+            let newBal = u.balance, newBank = u.bank_balance;
+            if (type === 'dep') {
+                if(amt > u.balance) return notify("Недостаточно средств!", false);
+                newBal -= amt; newBank += amt;
+            } else {
+                if(amt > u.bank_balance) return notify("В банке нет столько!", false);
+                newBal += amt; newBank -= amt;
+            }
+            const { data } = await sb.from('profiles').update({ balance: newBal, bank_balance: newBank }).eq('username', u.username).select().single();
+            u = data; updateUI();
+        }
+
+        // LEADERBOARD
+        async function loadLeaderboard() {
+            const { data } = await sb.from('profiles').select('username, balance').order('balance', { ascending: false }).limit(10);
+            document.getElementById('leaderboard').innerHTML = data.map((it, i) => `
+                <div class="glass p-4 rounded-2xl flex justify-between items-center ${it.username === u.username ? 'border-red-600' : ''}">
+                    <span class="font-black text-red-600">#${i+1}</span>
+                    <span class="font-bold flex-1 ml-4">${it.username}</span>
+                    <span class="font-black italic">${it.balance.toLocaleString()} BC</span>
+                </div>
+            `).join('');
+        }
+
+        // BLACK PASS
+        function renderPass() {
+            let html = '';
+            for(let i=1; i<=40; i++) {
+                let r = `${i*10000} BC`;
+                if(i%10 === 0) r = "MEGA CASE";
+                if(i === 35 || i === 40) r = "TITUL x5.0";
+                html += `
+                    <div class="glass p-4 rounded-2xl flex justify-between items-center opacity-${u.level >= i ? '100' : '30'}">
+                        <span class="font-black">LVL ${i}</span>
+                        <span class="text-[10px] font-bold text-red-600 uppercase">${r}</span>
+                        <span>${u.level >= i ? '✅' : '🔒'}</span>
+                    </div>
+                `;
+            }
+            document.getElementById('pass-rewards').innerHTML = html;
+        }
+
+    </script>
+</body>
+</html>
