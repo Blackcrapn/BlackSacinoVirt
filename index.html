@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLACK CASINO PREMIUM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+        body { font-family: 'Montserrat', sans-serif; background: #050505; color: white; overflow-x: hidden; }
+        .card-glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; }
+        .btn-primary { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-primary:active { scale: 0.95; }
+        .nav-item { transition: all 0.3s; cursor: pointer; opacity: 0.6; }
+        .nav-item.active { opacity: 1; color: #fbbf24; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="pb-28">
+
+    <div class="max-w-6xl mx-auto px-4 pt-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-black italic tracking-tighter text-yellow-500">BLACK CASINO</h1>
+            <div id="user-info" class="flex items-center gap-2 mt-1">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span id="nick-display" class="text-xs text-slate-400 uppercase font-bold tracking-widest">Загрузка...</span>
+            </div>
+        </div>
+        <div class="card-glass px-6 py-3 text-right shadow-2xl shadow-yellow-500/5">
+            <p class="text-[10px] text-slate-500 font-bold uppercase">Твой баланс</p>
+            <p id="balance-display" class="text-xl font-black text-white tracking-tight">0 BC</p>
+        </div>
+    </div>
+
+    <main id="game-container" class="max-w-6xl mx-auto p-4 mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <div class="card-glass p-6 space-y-4">
+            <div class="flex justify-between items-start">
+                <h2 class="text-xl font-black italic text-white">ВЫШЕ / НИЖЕ</h2>
+                <span class="text-[10px] bg-white/10 px-2 py-1 rounded-full font-bold">MIN 100 BC</span>
+            </div>
+            <div class="bg-black/40 rounded-3xl py-10 text-center border border-white/5 relative overflow-hidden">
+                <p id="hl-number" class="text-6xl font-black text-yellow-500">42</p>
+                <p class="text-[10px] text-slate-500 uppercase mt-2 tracking-widest">Текущее число</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="playHighLow('high')" class="flex-1 btn-primary text-black font-black py-4 rounded-2xl uppercase text-xs">Больше</button>
+                <button onclick="playHighLow('low')" class="flex-1 bg-white/5 hover:bg-white/10 py-4 rounded-2xl font-black uppercase text-xs border border-white/10">Меньше</button>
+            </div>
+        </div>
+
+        <div class="card-glass p-6 space-y-4">
+            <h2 class="text-xl font-black italic">РУЛЕТКА</h2>
+            <div id="roulette-display" class="h-20 bg-black/40 rounded-2xl flex items-center justify-center text-3xl overflow-hidden border border-white/5 font-black">
+                <span id="roulette-result">?</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="playRoulette('red')" class="bg-red-600 py-3 rounded-xl font-black text-xs">RED x2</button>
+                <button onclick="playRoulette('green')" class="bg-green-600 py-3 rounded-xl font-black text-xs">ZERO x14</button>
+                <button onclick="playRoulette('black')" class="bg-slate-800 py-3 rounded-xl font-black text-xs">BLACK x2</button>
+            </div>
+        </div>
+
+        <div class="card-glass p-6 border-2 border-yellow-500/20 bg-yellow-500/[0.02]">
+            <h2 class="text-xl font-black italic flex justify-between">КОСТИ PvP <span class="text-xs text-yellow-500">ONLINE</span></h2>
+            <p class="text-xs text-slate-400 leading-relaxed">Игра с друзьями в реальном времени. Ставка забирается победителем.</p>
+            <div class="mt-4 space-y-3">
+                <input type="text" placeholder="Ник друга..." class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm focus:outline-none focus:border-yellow-500 transition">
+                <button class="w-full btn-primary text-black font-black py-3 rounded-xl text-xs uppercase">Вызвать на дуэль</button>
+            </div>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-lg card-glass p-2 flex justify-around items-center shadow-2xl border-white/20">
+        <div onclick="showPage('games')" class="nav-item active flex flex-col items-center p-3">
+            <span class="text-xl">🎲</span><span class="text-[9px] font-bold uppercase mt-1">Игры</span>
+        </div>
+        <div onclick="showPage('cases')" class="nav-item flex flex-col items-center p-3">
+            <span class="text-xl">📦</span><span class="text-[9px] font-bold uppercase mt-1">Кейсы</span>
+        </div>
+        <div onclick="showPage('pass')" class="nav-item flex flex-col items-center p-3">
+            <span class="text-xl">🔥</span><span class="text-[9px] font-bold uppercase mt-1">Pass</span>
+        </div>
+        <div onclick="showPage('friends')" class="nav-item flex flex-col items-center p-3">
+            <span class="text-xl">👥</span><span class="text-[9px] font-bold uppercase mt-1">Друзья</span>
+        </div>
+    </nav>
+
+    <script>
+        // --- КОНФИГУРАЦИЯ ---
+        const SB_URL = 'https://xlrzjpzcqnjdtbuuovvz.supabase.co';
+        const SB_KEY = 'sb_publishable_SOBMj961ujDu2G45dNor9g_CsjOu_JD';
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
+        let user = null;
+        let currentHLNumber = 50;
+        let selectedBet = 500;
+
+        async function init() {
+            const myID = '74c3a3ad-ccec-4079-b62b-cb2bcf1359f9'; // Твой ID
+            const { data } = await supabaseClient.from('profiles').select('*').eq('id', myID).single();
+            if (data) { user = data; updateUI(); }
+        }
+
+        function updateUI() {
+            document.getElementById('balance-display').innerText = user.balance.toLocaleString() + ' BC';
+            document.getElementById('nick-display').innerText = user.username;
+            document.getElementById('hl-number').innerText = currentHLNumber;
+        }
+
+        // --- ЛОГИКА ИГРЫ: ВЫШЕ / НИЖЕ ---
+        async function playHighLow(choice) {
+            const nextNum = Math.floor(Math.random() * 100) + 1;
+            let win = false;
+            if (choice === 'high' && nextNum > currentHLNumber) win = true;
+            if (choice === 'low' && nextNum < currentHLNumber) win = true;
+            if (nextNum === currentHLNumber) { alert("Ничья! Числа совпали."); return; }
+
+            let newBalance = user.balance;
+            if (win) {
+                newBalance += selectedBet;
+                alert(`ВЫПАЛО ${nextNum}! ПОБЕДА!`);
+            } else {
+                newBalance -= selectedBet;
+                alert(`ВЫПАЛО ${nextNum}! ПРОИГРЫШ!`);
+            }
+
+            currentHLNumber = nextNum;
+            const { data } = await supabaseClient.from('profiles').update({ balance: newBalance }).eq('id', user.id).select().single();
+            user = data;
+            updateUI();
+        }
+
+        // --- ЛОГИКА ИГРЫ: РУЛЕТКА ---
+        async function playRoulette(color) {
+            const resDisplay = document.getElementById('roulette-result');
+            resDisplay.innerText = "⏳";
+            
+            setTimeout(async () => {
+                const num = Math.floor(Math.random() * 37);
+                let winColor = 'black';
+                if (num === 0) winColor = 'green';
+                else if ([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36].includes(num)) winColor = 'red';
+
+                resDisplay.innerText = num;
+                resDisplay.style.color = winColor === 'red' ? '#ef4444' : winColor === 'green' ? '#22c55e' : '#ffffff';
+
+                let newBalance = user.balance - selectedBet;
+                if (color === winColor) {
+                    const mult = color === 'green' ? 14 : 2;
+                    newBalance += (selectedBet * mult);
+                    alert("ВЫИГРЫШ!");
+                } else {
+                    alert("ПРОИГРЫШ!");
+                }
+
+                const { data } = await supabaseClient.from('profiles').update({ balance: newBalance }).eq('id', user.id).select().single();
+                user = data;
+                updateUI();
+            }, 1000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
