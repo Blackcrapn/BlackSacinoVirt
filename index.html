@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Black Win | Professional</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Inter:wght@400;700&display=swap');
+        :root { --red: #ff0000; --dark: #050505; }
+        body { font-family: 'Inter', sans-serif; background: var(--dark); color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        .font-black { font-family: 'Montserrat', sans-serif; font-weight: 900; }
+        .red-btn { background: linear-gradient(90deg, #ff0000, #a00000); transition: 0.2s; text-transform: uppercase; font-weight: 900; }
+        .red-btn:active { transform: scale(0.95); }
+        .glass { background: #0f0f0f; border: 1px solid rgba(255, 0, 0, 0.15); }
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.3s; }
+        .nav-active { color: var(--red); filter: drop-shadow(0 0 5px var(--red)); }
+        input { background: #151515 !important; border: 1px solid #333 !important; color: white !important; outline: none; text-align: center; }
+        .friend-sidebar { transform: translateX(100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .friend-sidebar.open { transform: translateX(0); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="pb-28">
+
+    <div id="game-modal" class="fixed inset-0 z-[500] bg-black/95 flex items-center justify-center p-6 hidden">
+        <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center border-t-4 border-red-600 animate__animated animate__zoomIn">
+            <h2 id="modal-title" class="font-black text-2xl mb-4 italic">РЕЗУЛЬТАТ</h2>
+            <p id="modal-desc" class="text-gray-400 mb-8 font-medium"></p>
+            <button onclick="closeModal()" class="red-btn w-full py-4 rounded-2xl">ОК</button>
+        </div>
+    </div>
+
+    <div id="friend-menu" class="friend-sidebar fixed top-0 right-0 w-72 h-full bg-black/95 z-[400] border-l border-red-600/20 p-6 flex flex-col">
+        <h3 class="font-black text-red-600 italic mb-1 uppercase text-sm">Управление</h3>
+        <p id="active-friend-nick" class="text-[10px] font-bold text-gray-500 mb-8 tracking-widest uppercase italic">---</p>
+        <div class="space-y-3 flex-1">
+            <button onclick="alert('Чат находится в разработке')" class="w-full bg-white/5 py-4 rounded-2xl text-[10px] font-black uppercase">💬 Чат</button>
+            <button onclick="sendPvPFromSidebar()" class="w-full red-btn py-4 rounded-2xl text-[10px]">🎲 ПВП Кости</button>
+        </div>
+        <button onclick="disconnectFriend()" class="w-full border border-white/10 py-4 rounded-2xl text-[10px] font-black uppercase mt-4">Отключиться</button>
+    </div>
+
+    <div id="auth-screen" class="fixed inset-0 z-[200] bg-black flex items-center justify-center p-6">
+        <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center">
+            <h1 class="font-black text-3xl text-red-600 mb-8 italic tracking-tighter">BLACK WIN</h1>
+            <div class="space-y-4">
+                <input type="text" id="auth-nick" placeholder="НИКНЕЙМ" class="w-full p-5 rounded-2xl font-bold">
+                <input type="password" id="auth-pass" placeholder="ПАРОЛЬ" class="w-full p-5 rounded-2xl font-bold">
+                <button onclick="smartAuth()" class="red-btn w-full py-5 rounded-2xl shadow-lg">ВХОД</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="p-6 flex justify-between items-center sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
+        <div><h1 class="font-black text-lg text-red-600 italic">BLACK WIN</h1><p id="ui-nick" class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">---</p></div>
+        <div class="text-right"><p id="ui-balance" class="text-xl font-black italic">0 BC</p><p id="ui-xp" class="text-[9px] text-red-600 font-black italic">LVL <span id="ui-level">1</span></p></div>
+    </header>
+
+    <main class="p-4 max-w-2xl mx-auto">
+        <section id="s-games" class="section active space-y-6">
+            <div class="glass p-5 rounded-[30px] border-l-4 border-red-600" onclick="showSection('pass')">
+                <div class="flex justify-between items-end mb-3"><span class="font-black text-[10px]">BLACK PASS XP</span><span id="ui-xp-val" class="text-[10px] font-bold">0/1000</span></div>
+                <div class="w-full bg-white/5 h-1.5 rounded-full overflow-hidden"><div id="ui-bar" class="bg-red-600 h-full transition-all" style="width: 0%"></div></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="playBinary()" class="glass p-6 rounded-[35px] text-center"><p class="text-[9px] font-black text-red-600 uppercase mb-2">Удача 50/50</p><span class="red-btn px-4 py-2 rounded-xl text-[8px]">ИГРАТЬ</span></button>
+                <button onclick="playRoulette()" class="glass p-6 rounded-[35px] text-center"><p class="text-[9px] font-black text-red-600 uppercase mb-2">Рулетка X3</p><span class="red-btn px-4 py-2 rounded-xl text-[8px]">ИГРАТЬ</span></button>
+            </div>
+            <div class="glass p-8 rounded-[40px] text-center space-y-6">
+                <div class="bg-black py-10 rounded-[35px] border border-red-600/10 shadow-inner"><span id="hl-num" class="text-7xl font-black text-red-600 italic">?</span></div>
+                <div id="hl-setup"><input type="number" id="hl-bet" value="1000" class="w-full p-4 rounded-3xl text-lg font-black mb-4"><button onclick="startHL()" class="red-btn w-full py-5 rounded-[28px]">СТАВИТЬ</button></div>
+                <div id="hl-action" class="hidden flex gap-4"><button onclick="playHL('high')" class="flex-1 red-btn py-5 rounded-[25px]">ВЫШЕ</button><button onclick="playHL('low')" class="flex-1 bg-white/5 py-5 rounded-[25px] font-black border border-white/5">НИЖЕ</button></div>
+            </div>
+        </section>
+
+        <section id="s-store" class="section space-y-4">
+            <h2 class="font-black text-center text-xl py-4 italic uppercase">МАГАЗИН КЕЙСОВ</h2>
+            <div id="case-list" class="space-y-3"></div>
+        </section>
+
+        <section id="s-bank" class="section">
+            <div class="glass p-10 rounded-[40px] text-center border-t-4 border-red-600">
+                <h2 class="font-black text-xl mb-10 italic italic">BLACK BANK</h2>
+                <p id="ui-bank-balance" class="text-5xl font-black text-red-600 mb-12">0 BC</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="bankAction('dep')" class="red-btn py-5 rounded-2xl">ВКЛАД</button>
+                    <button onclick="bankAction('with')" class="bg-white/10 py-5 rounded-2xl font-bold">СНЯТЬ</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="s-social" class="section space-y-6">
+            <div class="glass p-6 rounded-[35px] space-y-4">
+                <h3 class="font-black text-[10px] text-gray-500 uppercase italic">Поиск по нику</h3>
+                <input type="text" id="target-nick" placeholder="НИКНЕЙМ" class="w-full p-4 rounded-2xl font-bold">
+                <button onclick="sendFriendReq()" class="red-btn w-full py-4 rounded-xl text-xs">Предложить запрос в друзья</button>
+            </div>
+            <div id="friends-list" class="space-y-2"></div>
+        </section>
+
+        <section id="s-top" class="section space-y-2"><div id="leaderboard" class="space-y-2"></div></section>
+
+        <section id="s-pass" class="section space-y-3 h-[60vh] overflow-y-auto pr-2"><div id="pass-list" class="space-y-2"></div></section>
+    </main>
+
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-md bg-black/90 backdrop-blur-2xl border border-white/10 p-2 rounded-[35px] flex justify-around items-center z-50">
+        <button onclick="showSection('games')" id="n-games" class="nav-active flex flex-col items-center p-3 gap-1"><span class="text-xl">🎲</span><span class="text-[8px] font-black">ИГРЫ</span></button>
+        <button onclick="showSection('store')" id="n-store" class="flex flex-col items-center p-3 gap-1"><span class="text-xl">📦</span><span class="text-[8px] font-black">КЕЙСЫ</span></button>
+        <button onclick="showSection('bank')" id="n-bank" class="flex flex-col items-center p-3 gap-1"><span class="text-xl">🏦</span><span class="text-[8px] font-black">БАНК</span></button>
+        <button onclick="showSection('social')" id="n-social" class="flex flex-col items-center p-3 gap-1"><span class="text-xl">👥</span><span class="text-[8px] font-black">ОНЛАЙН</span></button>
+        <button onclick="showSection('top')" id="n-top" class="flex flex-col items-center p-3 gap-1"><span class="text-xl">🏆</span><span class="text-[8px] font-black">ТОП</span></button>
+    </nav>
+
+    <script>
+        const SB_URL = 'https://xlrzjpzcqnjdtbuuovvz.supabase.co';
+        const SB_KEY = 'sb_publishable_SOBMj961ujDu2G45dNor9g_CsjOu_JD';
+        const sb = supabase.createClient(SB_URL, SB_KEY);
+
+        let u = null;
+        let hlBase = 0;
+        let activeFriend = null;
+
+        const CASES = [
+            { id: 'bronze', name: 'Бронзовый кейс', price: 15000, color: 'orange-800', minB: 5000, maxB: 40000, minX: 100, maxX: 300 },
+            { id: 'silver', name: 'Серебряный кейс', price: 75000, color: 'slate-400', minB: 40000, maxB: 200000, minX: 300, maxX: 800 },
+            { id: 'gold', name: 'Золотой кейс', price: 200000, color: 'yellow-500', minB: 150000, maxB: 600000, minX: 1000, maxX: 2000 },
+            { id: 'black', name: 'Black Win Ultra', price: 500000, color: 'white', minB: 100000, maxB: 1000000, minX: 2000, maxX: 5000 }
+        ];
+
+        async function smartAuth() {
+            const nick = document.getElementById('auth-nick').value.trim();
+            const pass = document.getElementById('auth-pass').value.trim();
+            if(!nick || !pass) return;
+            const { data } = await sb.from('profiles').select('*').eq('username', nick).maybeSingle();
+            if(data) {
+                if(data.password === pass) { u = data; login(); }
+                else alert("Неверный пароль");
+            } else {
+                const { data: n } = await sb.from('profiles').insert([{username: nick, password: pass}]).select().single();
+                u = n; login();
+            }
+        }
+
+        function login() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            updateUI(); renderCases(); renderPass(); initRealtime(); loadFriends();
+        }
+
+        function updateUI() {
+            if(!u) return;
+            document.getElementById('ui-nick').innerText = u.username;
+            document.getElementById('ui-balance').innerText = u.balance.toLocaleString() + ' BC';
+            document.getElementById('ui-bank-balance').innerText = u.bank_balance.toLocaleString() + ' BC';
+            document.getElementById('ui-level').innerText = u.level;
+            document.getElementById('ui-xp-val').innerText = `${u.xp % 1000}/1000`;
+            document.getElementById('ui-bar').style.width = (u.xp % 1000) / 10 + '%';
+        }
+
+        function showSection(n) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+            document.getElementById('s-'+n).classList.add('active');
+            document.getElementById('n-'+n).classList.add('nav-active');
+            if(n === 'social') loadFriends();
+            if(n === 'top') loadTop();
+        }
+
+        async function updateData(balanceAdd, xpAdd) {
+            const newXp = u.xp + xpAdd;
+            const { data } = await sb.from('profiles').update({ 
+                balance: u.balance + balanceAdd, 
+                xp: newXp, 
+                level: Math.floor(newXp / 1000) + 1 
+            }).eq('username', u.username).select().single();
+            u = data; updateUI();
+        }
+
+        async function playBinary() {
+            if(u.balance < 1000) return alert("Нужно минимум 1000 BC");
+            const win = Math.random() > 0.5;
+            await updateData(win ? 1000 : -1000, win ? 100 : 20);
+            showModal(win ? "УДАЧА!" : "ПРОИГРЫШ", win ? "+1000 BC" : "-1000 BC");
+        }
+
+        async function playRoulette() {
+            if(u.balance < 2000) return alert("Нужно минимум 2000 BC");
+            const r = Math.random();
+            let res = -2000, msg = "-2000 BC", xp = 20;
+            if(r > 0.9) { res = 6000; msg = "JACKPOT X3! +6000 BC"; xp = 500; }
+            else if(r > 0.6) { res = 4000; msg = "WIN X2! +4000 BC"; xp = 200; }
+            await updateData(res, xp);
+            showModal("РУЛЕТКА", msg);
+        }
+
+        function startHL() {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            if(u.balance < bet) return alert("Не хватает BC");
+            hlBase = Math.floor(Math.random() * 80) + 10;
+            document.getElementById('hl-num').innerText = hlBase;
+            document.getElementById('hl-setup').classList.add('hidden');
+            document.getElementById('hl-action').classList.remove('hidden');
+        }
+
+        async function playHL(c) {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            const n = Math.floor(Math.random() * 100) + 1;
+            const win = (c === 'high' && n > hlBase) || (c === 'low' && n < hlBase);
+            await updateData(win ? bet : -bet, win ? 150 : 30);
+            showModal(win ? "ПОБЕДА" : "ПРОИГРЫШ", `Число: ${n}. ${win ? '+'+bet : -bet} BC`);
+            document.getElementById('hl-num').innerText = '?';
+            document.getElementById('hl-setup').classList.remove('hidden');
+            document.getElementById('hl-action').classList.add('hidden');
+        }
+
+        function showModal(t, d) {
+            document.getElementById('modal-title').innerText = t;
+            document.getElementById('modal-desc').innerText = d;
+            document.getElementById('game-modal').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('game-modal').classList.add('hidden'); }
+
+        // --- КЕЙСЫ ---
+        function renderCases() {
+            document.getElementById('case-list').innerHTML = CASES.map(c => `
+                <div class="glass p-5 rounded-3xl flex justify-between items-center border-b-2 border-${c.color}">
+                    <div><p class="font-black italic text-xs uppercase">${c.name}</p><p class="text-red-600 text-[10px] font-bold">${c.price.toLocaleString()} BC</p></div>
+                    <button onclick="openCase('${c.id}')" class="red-btn px-6 py-3 rounded-xl text-[10px]">ОТКРЫТЬ</button>
+                </div>
+            `).join('');
+        }
+
+        async function openCase(id) {
+            const c = CASES.find(x => x.id === id);
+            if(u.balance < c.price) return alert("Мало BC!");
+            const winB = Math.floor(Math.random() * (c.maxB - c.minB)) + c.minB;
+            const winX = Math.floor(Math.random() * (c.maxX - c.minX)) + c.minX;
+            await updateData(winB - c.price, winX);
+            showModal("КЕЙС", `Награда: ${winB.toLocaleString()} BC и ${winX} XP`);
+        }
+
+        // --- БАНК ---
+        async function bankAction(type) {
+            const amt = parseInt(prompt("Введите сумму:"));
+            if(!amt || amt <= 0) return;
+            let nB = u.balance, nBK = u.bank_balance;
+            if(type === 'dep') {
+                if(amt > u.balance) return alert("Мало на руках");
+                nB -= amt; nBK += amt;
+            } else {
+                if(amt > u.bank_balance) return alert("Мало в банке");
+                nB += amt; nBK -= amt;
+            }
+            const { data } = await sb.from('profiles').update({ balance: nB, bank_balance: nBK }).eq('username', u.username).select().single();
+            u = data; updateUI();
+        }
+
+        // --- ОНЛАЙН ---
+        async function sendFriendReq() {
+            const to = document.getElementById('target-nick').value.trim();
+            if(!to || to === u.username) return;
+            const { error } = await sb.from('interactions').insert([{ from_user: u.username, to_user: to, type: 'friend_req' }]);
+            if(!error) alert("Запрос в друзья отправлен игроку " + to);
+            else alert("Ошибка. Игрок не найден.");
+        }
+
+        async function loadFriends() {
+            const { data } = await sb.from('friendships').select('*').or(`user1.eq.${u.username},user2.eq.${u.username}`);
+            const list = document.getElementById('friends-list');
+            list.innerHTML = data.map(f => {
+                const name = f.user1 === u.username ? f.user2 : f.user1;
+                return `<div class="glass p-4 rounded-2xl flex justify-between items-center"><span class="font-black italic text-sm">${name}</span><button onclick="openFriendMenu('${name}')" class="bg-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase italic">Связь</button></div>`;
+            }).join('');
+        }
+
+        function openFriendMenu(name) {
+            activeFriend = name;
+            document.getElementById('active-friend-nick').innerText = name;
+            document.getElementById('friend-menu').classList.add('open');
+        }
+
+        function disconnectFriend() {
+            alert(`Вы отключились от ${activeFriend}.`);
+            document.getElementById('friend-menu').classList.remove('open');
+            activeFriend = null;
+        }
+
+        async function sendPvPFromSidebar() {
+            const bet = parseInt(prompt("Ставка на ПВП:"));
+            if(!bet || u.balance < bet) return alert("Мало BC или неверная сумма");
+            await sb.from('interactions').insert([{ from_user: u.username, to_user: activeFriend, type: 'pvp_req', bet }]);
+            alert("Вызов отправлен!");
+        }
+
+        function initRealtime() {
+            sb.channel('global').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
+                const req = p.new;
+                if(req.to_user !== u.username) return;
+
+                if(req.type === 'friend_req') {
+                    if(confirm(`Игрок ${req.from_user} прислал запрос в друзья. Принять?`)) {
+                        await sb.from('friendships').insert([{ user1: req.from_user, user2: u.username }]);
+                        loadFriends();
+                    }
+                } else if(req.type === 'pvp_req') {
+                    if(confirm(`${req.from_user} вызывает на ПВП Кости на ${req.bet} BC. Принять?`)) {
+                        const win = Math.random() > 0.5;
+                        await updateData(win ? req.bet : -req.bet, 100);
+                        showModal(win ? "ПОБЕДА ПВП" : "ПРОИГРЫШ ПВП", win ? `Вы забрали ${req.bet} BC!` : `Вы потеряли ${req.bet} BC`);
+                    }
+                }
+            }).subscribe();
+        }
+
+        async function loadTop() {
+            const { data } = await sb.from('profiles').select('username, balance').order('balance', { ascending: false }).limit(10);
+            document.getElementById('leaderboard').innerHTML = data.map((it, i) => `<div class="glass p-4 rounded-2xl flex justify-between items-center"><span class="font-black text-red-600">#${i+1}</span><span class="font-bold ml-4">${it.username}</span><span class="font-black">${it.balance.toLocaleString()} BC</span></div>`).join('');
+        }
+
+        function renderPass() {
+            let h = ''; for(let i=1; i<=40; i++) {
+                h += `<div class="glass p-4 rounded-2xl flex justify-between items-center opacity-${u.level >= i ? '100' : '20'}"><span class="font-black text-[10px]">LVL ${i}</span><span class="text-[9px] font-black text-red-600">${i*10000} BC</span></div>`;
+            }
+            document.getElementById('pass-list').innerHTML = h;
+        }
+    </script>
+</body>
+</html>
