@@ -611,24 +611,66 @@
             }).join('');
         }
 
-        function initRealtime() {
-            sb.channel('global').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
-                if(typeof activeFriend !== 'undefined' && activeFriend && (p.new.sender === activeFriend || p.new.receiver === activeFriend)) {
-                    loadMessages();
-                }
-            }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
-                const r = p.new;
-                if(r.to_user !== u.username) return;
-                
-                if(r.type === 'friend_req') {
-                    if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
-                        await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
-                        // Удаляем запрос после принятия, чтобы не всплывал снова
-                        await sb.from('interactions').delete().eq('id', r.id);
+       function initRealtime() {
+            // Создаем один канал для всех изменений
+            const channel = sb.channel('db_changes');
+
+            channel
+                // 1. Слушаем новые сообщения (ЧАТ)
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'messages' 
+                }, p => {
+                    console.log("Новое сообщение:", p.new);
+                    // Если открыт чат с этим человеком - обновляем сообщения
+                    if(typeof activeFriend !== 'undefined' && activeFriend && 
+                      (p.new.sender === activeFriend || p.new.receiver === activeFriend)) {
+                        loadMessages();
+                    }
+                })
+                // 2. Слушаем новые запросы (ДРУЗЬЯ)
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'interactions' 
+                }, async p => {
+                    const r = p.new;
+                    if(r.to_user !== u.username) return;
+                    
+                    if(r.type === 'friend_req') {
+                        // Используем setTimeout, чтобы confirm не вешал сокет
+                        setTimeout(async () => {
+                            if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
+                                await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
+                                await sb.from('interactions').delete().eq('id', r.id);
+                                loadFriends(); // Обновляем список друзей у себя
+                            }
+                        }, 100);
+                    }
+                })
+                // 3. Слушаем создание дружбы (чтобы список обновился у ОБОИХ)
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'friendships' 
+                }, p => {
+                    if(p.new.user1 === u.username || p.new.user2 === u.username) {
                         loadFriends();
                     }
-                }
-            })
+                })
+                // 4. Слушаем алерты
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'global_alerts' 
+                }, p => {
+                    if(typeof triggerBroadcast === 'function') triggerBroadcast(p.new.sender, p.new.message);
+                })
+                .subscribe((status) => {
+                    console.log("Статус Realtime:", status);
+                });
+        }
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_alerts' }, p => {
                 if(typeof triggerBroadcast === 'function') triggerBroadcast(p.new.sender, p.new.message);
             })
