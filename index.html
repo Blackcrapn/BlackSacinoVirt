@@ -314,6 +314,19 @@
             const cmd = parts[0].toLowerCase();
             const targetNick = parts[1] ? parts[1].toUpperCase() : null;
             const value = parts[2];
+            // Команда: /kick НИК
+if (cmd === '/kick') {
+    const targetNick = parts[1]?.toUpperCase();
+    if (!targetNick) return alert("Введите ник игрока");
+
+    await sb.from('global_alerts').insert([{ 
+        sender: 'SYSTEM', 
+        message: `FORCE_RELOAD:${targetNick}` 
+    }]);
+    
+    input.value = '';
+    console.log(`Сигнал кика отправлен для: ${targetNick}`);
+}
 
             try {
                 switch(cmd) {
@@ -575,33 +588,41 @@
             }).join('');
         }
 
-        function initRealtime() {
-            sb.channel('global').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
-                if(activeFriend && (p.new.sender === activeFriend || p.new.receiver === activeFriend)) loadMessages();
-            }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
-                const r = p.new;
-                if(r.to_user !== u.username) return;
-                if(r.type === 'friend_req') {
-                    if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
-                        await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
-                        loadFriends();
-                    }
-                }
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_alerts' }, p => {
-                triggerBroadcast(p.new.sender, p.new.message);
-            })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, p => {
-                if (u && p.new.username === u.username) {
-                    u = p.new;
-                    localStorage.setItem('bw_session', JSON.stringify(u));
-                    checkBanStatus();
-                    updateUI();
-                }
-            })
-            .subscribe();
+       function initRealtime() {
+    sb.channel('global').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
+        if(activeFriend && (p.new.sender === activeFriend || p.new.receiver === activeFriend)) loadMessages();
+    }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
+        const r = p.new;
+        if(r.to_user !== u.username) return;
+        if(r.type === 'friend_req') {
+            if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
+                await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
+                loadFriends();
+            }
         }
-
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_alerts' }, p => {
+        // --- ВСТАВКА ТУТ ---
+        if (p.new.message.startsWith('KICK_USER:')) {
+            const target = p.new.message.split(':')[1];
+            if (u.username === target) {
+                location.reload(); 
+                return; // Важно: выходим, чтобы не показывать уведомление
+            }
+        }
+        // -------------------
+        triggerBroadcast(p.new.sender, p.new.message);
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, p => {
+        if (u && p.new.username === u.username) {
+            u = p.new;
+            localStorage.setItem('bw_session', JSON.stringify(u));
+            checkBanStatus();
+            updateUI();
+        }
+    })
+    .subscribe();
+}
         function showModal(t, d) {
             document.getElementById('modal-title').innerText = t;
             document.getElementById('modal-desc').innerText = d;
