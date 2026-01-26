@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Black Win | Elite Fixed</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Inter:wght@400;700&display=swap');
+        :root { --red: #ff0000; --dark: #050505; }
+        body { font-family: 'Inter', sans-serif; background: var(--dark); color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        .font-black { font-family: 'Montserrat', sans-serif; font-weight: 900; }
+        .red-btn { background: linear-gradient(90deg, #ff0000, #a00000); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-transform: uppercase; font-weight: 900; }
+        .red-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,0,0,0.3); }
+        .red-btn:active { transform: scale(0.95); }
+        .glass { background: rgba(15, 15, 15, 0.85); border: 1px solid rgba(255, 0, 0, 0.15); backdrop-filter: blur(10px); }
+        .section { display: none; opacity: 0; transform: translateY(10px); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .section.active { display: block; opacity: 1; transform: translateY(0); animation: fadeInUp 0.4s; }
+        .nav-active { color: var(--red); filter: drop-shadow(0 0 8px var(--red)); transform: scale(1.1); transition: 0.3s; }
+        input { background: #151515 !important; border: 1px solid #333 !important; color: white !important; outline: none; text-align: center; transition: 0.3s; }
+        input:focus { border-color: #ff0000 !important; box-shadow: 0 0 10px rgba(255,0,0,0.3); }
+        .friend-sidebar { transform: translateX(100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .friend-sidebar.open { transform: translateX(0); }
+        .chat-area { height: 350px; overflow-y: auto; scrollbar-width: none; background: rgba(0,0,0,0.2); border-radius: 20px; padding: 10px; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(255,0,0,0.7); } 70% { box-shadow: 0 0 0 10px rgba(255,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,0,0,0); } }
+        .pass-card { background: linear-gradient(135deg, #1a1a1a 0%, #000 100%); border: 1px solid #ff000033; }
+        #global-broadcast { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 3000; transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #global-broadcast.show { top: 20px; }
+        .admin-cmd-list { font-size: 10px; text-align: left; color: #888; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 15px; margin-top: 10px; }
+        .admin-cmd-list b { color: #ff0000; }
+        .inventory-item { transition: all 0.3s; border: 2px solid transparent; }
+        .inventory-item:hover { transform: translateY(-5px); border-color: #ff0000; }
+        .task-complete { background: linear-gradient(90deg, #1a5c1a, #0a3d0a); border-color: #00ff00; }
+        .coin-animation { position: absolute; width: 20px; height: 20px; background: gold; border-radius: 50%; animation: coinFly 1s forwards; }
+        @keyframes coinFly { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+        .float-animation { animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .typewriter { overflow: hidden; border-right: 2px solid #ff0000; white-space: nowrap; animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite; }
+        @keyframes typing { from { width: 0 } to { width: 100% } }
+        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: #ff0000; } }
+    </style>
+</head>
+<body class="pb-28">
+
+    <div id="global-broadcast" class="glass p-4 rounded-2xl border-l-4 border-red-600 shadow-2xl">
+        <p id="broadcast-sender" class="text-[10px] font-black text-red-600 uppercase mb-1 tracking-widest">СИСТЕМА</p>
+        <p id="broadcast-text" class="text-xs font-bold italic text-white"></p>
+    </div>
+
+    <div id="ban-overlay" class="fixed inset-0 z-[5000] bg-black flex items-center justify-center p-6 hidden">
+        <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center border-2 border-red-600 animate__animated animate__pulse animate__infinite">
+            <h2 class="font-black text-3xl mb-4 text-red-600 italic">ВЫ ЗАБЛОКИРОВАНЫ</h2>
+            <p class="text-gray-400 text-sm mb-2 uppercase font-bold">Администрацией проекта</p>
+            <div class="bg-red-600/10 p-4 rounded-2xl mb-6">
+                <p class="text-[10px] text-red-500 font-black uppercase mb-1">Причина:</p>
+                <p id="ban-reason-text" class="text-white font-bold italic"></p>
+            </div>
+            <p class="text-[9px] text-gray-600 uppercase">Если вы не согласны с решением, обратитесь в поддержку.</p>
+        </div>
+    </div>
+
+    <div id="game-modal" class="fixed inset-0 z-[500] bg-black/95 flex items-center justify-center p-6 hidden">
+        <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center border-t-4 border-red-600 animate__animated animate__zoomIn">
+            <h2 id="modal-title" class="font-black text-2xl mb-4 italic">РЕЗУЛЬТАТ</h2>
+            <p id="modal-desc" class="text-gray-400 mb-8 font-medium"></p>
+            <button onclick="closeModal()" class="red-btn w-full py-4 rounded-2xl animate__animated animate__pulse animate__infinite">ОК</button>
+        </div>
+    </div>
+
+    <div id="inventory-modal" class="fixed inset-0 z-[600] bg-black/95 flex items-center justify-center p-6 hidden">
+        <div class="glass p-8 rounded-[40px] w-full max-w-md text-center border-2 border-yellow-500 animate__animated animate__slideInUp">
+            <h2 class="font-black text-2xl mb-6 text-yellow-500 italic">ИНВЕНТАРЬ</h2>
+            <div id="inventory-items" class="space-y-3 mb-6 max-h-80 overflow-y-auto p-2"></div>
+            <button onclick="document.getElementById('inventory-modal').classList.add('hidden')" class="red-btn w-full py-4 rounded-2xl">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <div id="key-instruction-modal" class="fixed inset-0 z-[700] bg-black/95 flex items-center justify-center p-6 hidden">
+        <div class="glass p-8 rounded-[40px] w-full max-w-sm text-center border-2 border-yellow-500 animate__animated animate__zoomIn">
+            <h2 class="font-black text-2xl mb-4 text-yellow-500 italic">ИНСТРУКЦИЯ</h2>
+            <div id="key-instruction-text" class="text-gray-300 mb-8 text-sm space-y-2"></div>
+            <button onclick="document.getElementById('key-instruction-modal').classList.add('hidden')" class="red-btn w-full py-4 rounded-2xl">ПОНЯТНО</button>
+        </div>
+    </div>
+
+    <div id="friend-menu" class="friend-sidebar fixed top-0 right-0 w-80 h-full bg-black/95 z-[400] border-l border-red-600/20 p-6 flex flex-col">
+        <div class="flex justify-between items-center mb-6">
+            <h3 id="active-friend-nick" class="font-black text-red-600 italic uppercase">НИК</h3>
+            <button onclick="closeFriendMenu()" class="text-gray-500 font-black hover:text-red-600 transition">✕</button>
+        </div>
+        <div id="chat-box" class="chat-area space-y-3 mb-4 pr-2"></div>
+        <div class="flex gap-2 mb-6">
+            <input type="text" id="chat-input" placeholder="Сообщение..." class="flex-1 p-3 rounded-xl text-[10px]">
+            <button onclick="sendMessage()" class="red-btn px-4 rounded-xl font-bold hover:scale-105">></button>
+        </div>
+        <button onclick="closeFriendMenu()" class="w-full border border-white/10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-white/5 transition">НАЗАД</button>
+    </div>
+
+    <div id="auth-screen" class="fixed inset-0 z-[2000] bg-black flex items-center justify-center p-6">
+        <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center animate__animated animate__fadeIn">
+            <h1 class="font-black text-3xl text-red-600 mb-8 italic tracking-tighter typewriter">BLACK WIN</h1>
+            <div class="space-y-4 animate__animated animate__fadeInUp animate__delay-1s">
+                <input type="text" id="auth-nick" placeholder="НИКНЕЙМ" class="w-full p-5 rounded-2xl font-bold uppercase">
+                <input type="password" id="auth-pass" placeholder="ПАРОЛЬ" class="w-full p-5 rounded-2xl font-bold">
+                <button onclick="smartAuth()" class="red-btn w-full py-5 rounded-2xl shadow-lg animate__animated animate__pulse animate__infinite">ВХОД</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="p-6 flex justify-between items-center sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/5 animate__animated animate__slideInDown">
+        <div>
+            <h1 class="font-black text-lg text-red-600 italic hover:text-red-500 transition cursor-pointer" onclick="showSection('games')">BLACK WIN</h1>
+            <p id="ui-nick" class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">---</p>
+        </div>
+        <div class="text-right">
+            <div class="flex items-center gap-3">
+                <button onclick="showInventory()" class="text-xl hover:text-yellow-500 transition animate__animated animate__pulse animate__infinite" title="Инвентарь">🎒</button>
+                <div>
+                    <p id="ui-balance" class="text-xl font-black italic hover:text-red-500 transition">0 BC</p>
+                    <p class="text-[9px] text-red-600 font-black italic">XP: <span id="ui-xp-total">0</span></p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="p-4 max-w-2xl mx-auto">
+        <section id="s-games" class="section active space-y-6">
+            <div class="pass-card p-6 rounded-[35px] mb-6 animate__animated animate__fadeInLeft">
+                <div class="flex justify-between items-end mb-4">
+                    <div>
+                        <h2 class="font-black text-red-600 italic text-xl">BLACK PASS</h2>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase">Уровень <span id="bp-lvl">1</span></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-gray-500 font-bold"><span id="bp-xp-current">0</span> / 1000 XP</p>
+                    </div>
+                </div>
+                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-4">
+                    <div id="bp-progress" class="bg-red-600 h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                </div>
+                <button id="bp-claim-btn" onclick="claimPassReward()" class="w-full bg-white/5 border border-white/10 py-3 rounded-2xl text-[10px] font-black uppercase opacity-50 cursor-not-allowed transition hover:bg-white/10">Забрать награду</button>
+                <div id="tasks-container" class="mt-6 space-y-3"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 animate__animated animate__fadeInRight">
+                <button onclick="playBinary()" class="glass p-6 rounded-[35px] text-center hover:scale-105 transition duration-300 float-animation">
+                    <p class="text-[9px] font-black text-red-600 uppercase mb-2 italic">Удача 50/50</p>
+                    <span class="red-btn px-4 py-2 rounded-xl text-[8px]">ИГРАТЬ</span>
+                </button>
+                <button onclick="playRoulette()" class="glass p-6 rounded-[35px] text-center hover:scale-105 transition duration-300 float-animation" style="animation-delay: 0.2s">
+                    <p class="text-[9px] font-black text-red-600 uppercase mb-2 italic">Рулетка X3</p>
+                    <span class="red-btn px-4 py-2 rounded-xl text-[8px]">ИГРАТЬ</span>
+                </button>
+            </div>
+            <div class="glass p-8 rounded-[40px] text-center space-y-6 animate__animated animate__fadeInUp">
+                <div class="bg-black py-10 rounded-[35px] border border-red-600/10 shadow-inner">
+                    <span id="hl-num" class="text-7xl font-black text-red-600 italic animate__animated">?</span>
+                </div>
+                <div id="hl-setup">
+                    <input type="number" id="hl-bet" value="1000" class="w-full p-4 rounded-3xl text-lg font-black mb-4">
+                    <button onclick="startHL()" class="red-btn w-full py-5 rounded-[28px] animate__animated animate__pulse">СТАВИТЬ</button>
+                </div>
+                <div id="hl-action" class="hidden flex gap-4 animate__animated animate__fadeIn">
+                    <button onclick="playHL('high')" class="flex-1 red-btn py-5 rounded-[25px] hover:scale-105 transition">ВЫШЕ</button>
+                    <button onclick="playHL('low')" class="flex-1 bg-white/5 py-5 rounded-[25px] font-black border border-white/5 hover:bg-white/10 transition">НИЖЕ</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="s-store" class="section space-y-4">
+             <h2 class="font-black text-center text-xl py-4 italic uppercase animate__animated animate__fadeInDown">МАГАЗИН КЕЙСОВ</h2>
+             <div id="case-list" class="space-y-3"></div>
+        </section>
+
+        <section id="s-bank" class="section space-y-4">
+            <div class="glass p-10 rounded-[40px] text-center border-t-4 border-red-600 animate__animated animate__zoomIn">
+                <h2 class="font-black text-xl mb-10 italic uppercase">BLACK BANK</h2>
+                <p id="ui-bank-balance" class="text-5xl font-black text-red-600 mb-12 italic">0 BC</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="bankAction('dep')" class="red-btn py-5 rounded-2xl hover:scale-105 transition">ВКЛАД</button>
+                    <button onclick="bankAction('with')" class="bg-white/10 py-5 rounded-2xl font-bold hover:bg-white/20 transition">СНЯТЬ</button>
+                </div>
+            </div>
+
+            <div class="glass p-6 rounded-[35px] text-center animate__animated animate__fadeInUp">
+                <h3 class="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-widest">Активация промокода</h3>
+                <input type="text" id="promo-input" placeholder="ПРОМОКОД" class="w-full p-4 rounded-2xl font-black uppercase mb-4 border border-red-600/20">
+                <button onclick="usePromo()" class="red-btn w-full py-4 rounded-xl text-xs hover:scale-105 transition">АКТИВИРОВАТЬ</button>
+            </div>
+        </section>
+
+        <section id="s-social" class="section space-y-6">
+            <div class="glass p-6 rounded-[35px] space-y-4 text-center animate__animated animate__fadeIn">
+                <h3 class="font-black text-[10px] text-gray-500 uppercase italic">Поиск по нику</h3>
+                <input type="text" id="target-nick" placeholder="НИКНЕЙМ" class="w-full p-4 rounded-2xl font-bold uppercase">
+                <button onclick="sendFriendReq()" class="red-btn w-full py-4 rounded-xl text-xs hover:scale-105 transition">ДОБАВИТЬ В ДРУЗЬЯ</button>
+            </div>
+            <div id="friends-list" class="space-y-2"></div>
+        </section>
+
+        <section id="s-top" class="section space-y-2">
+            <div id="leaderboard" class="space-y-2"></div>
+        </section>
+
+        <section id="s-admin" class="section space-y-6">
+            <div class="glass p-8 rounded-[40px] border-t-4 border-red-600 shadow-2xl animate__animated animate__zoomIn">
+                <h2 class="font-black text-2xl mb-2 italic text-red-600 uppercase">ADMIN PANEL v2.0</h2>
+                <p class="text-[10px] text-gray-500 font-bold mb-6 uppercase">Консоль управления сервером</p>
+                
+                <input type="text" id="admin-input" placeholder="Введите команду..." class="w-full p-5 rounded-2xl font-bold mb-4 border border-red-600/30 text-left">
+                <button onclick="executeAdminCommand()" class="red-btn w-full py-5 rounded-2xl hover:scale-105 transition">ВЫПОЛНИТЬ</button>
+
+                <div class="admin-cmd-list space-y-1">
+                    <p><b>/setbc (ник) (число)</b> — Установить баланс</p>
+                    <p><b>/setxp (ник) (число)</b> — Установить XP</p>
+                    <p><b>/globalalert (текст)</b> — Сообщение всем игрокам</p>
+                    <p><b>/ban (ник) (причина)</b> — Заблокировать игрока</p>
+                    <p><b>/unban (ник)</b> — Разблокировать игрока</p>
+                    <p><b>/additem (ник) (тип) (кол-во)</b> — Добавить предмет</p>
+                    <p><b>/createpromo (код) (bc) (xp) (кол-во)</b> — Создать промокод</p>
+                    <p><b>/event start (название)</b> — Начать ивент</p>
+                    <p><b>/event stop</b> — Остановить ивент</p>
+                    <p><b>/givekey (ник) (тип)</b> — Выдать ключ</p>
+                    <p><b>/clearchat (ник)</b> — Очистить чат</p>
+                    <p><b>/resetprogress (ник)</b> — Сбросить прогресс</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-md bg-black/90 backdrop-blur-2xl border border-white/10 p-2 rounded-[35px] flex justify-around items-center z-50 animate__animated animate__fadeInUp">
+        <button onclick="showSection('games')" id="n-games" class="p-3 text-xl hover:scale-110 transition">🎲</button>
+        <button onclick="showSection('store')" id="n-store" class="p-3 text-xl hover:scale-110 transition">📦</button>
+        <button onclick="showSection('bank')" id="n-bank" class="p-3 text-xl hover:scale-110 transition">🏦</button>
+        <button onclick="showSection('social')" id="n-social" class="p-3 text-xl hover:scale-110 transition">👥</button>
+        <button onclick="showSection('top')" id="n-top" class="p-3 text-xl hover:scale-110 transition">🏆</button>
+        <button onclick="showSection('admin')" id="n-admin" class="p-3 text-xl hidden hover:scale-110 transition">🛡️</button>
+    </nav>
+
+    <script>
+        const SB_URL = 'https://xlrzjpzcqnjdtbuuovvz.supabase.co';
+        const SB_KEY = 'sb_publishable_SOBMj961ujDu2G45dNor9g_CsjOu_JD';
+        const sb = supabase.createClient(SB_URL, SB_KEY);
+
+        let u = null, activeFriend = null, hlBase = 0;
+        let inventory = [];
+        let currentEvent = null;
+        let tasks = [
+            {id: 1, title: "Первая победа", description: "Выиграйте в любую игру", reward_bc: 1000, reward_xp: 50, type: "win_game"},
+            {id: 2, title: "Банкир", description: "Положите в банк 5000 BC", reward_bc: 2000, reward_xp: 100, type: "bank_deposit"},
+            {id: 3, title: "Социальный", description: "Добавьте 3 друзей", reward_bc: 1500, reward_xp: 75, type: "add_friends"},
+            {id: 4, title: "Азартный", description: "Сделайте 10 ставок", reward_bc: 3000, reward_xp: 150, type: "make_bets"},
+            {id: 5, title: "Богатый", description: "Достигните баланса 100000 BC", reward_bc: 5000, reward_xp: 200, type: "rich_balance"}
+        ];
+
+        const ITEMS = {
+            gold_key: {name: "Золотой ключ", description: "Открывает золотой кейс бесплатно", icon: "🔑", color: "yellow-500"},
+            silver_key: {name: "Серебряный ключ", description: "Открывает серебряный кейс бесплатно", icon: "🔑", color: "gray-300"},
+            booster_2x: {name: "Бустер x2", description: "Удваивает выигрыш на 1 час", icon: "⚡", color: "blue-500"},
+            lucky_coin: {name: "Счастливая монета", description: "Увеличивает шанс выигрыша на 10%", icon: "🪙", color: "yellow-300"},
+            black_card: {name: "Black Card", description: "Скидка 20% на все кейсы", icon: "💳", color: "black"}
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('bw_session');
+            if(saved) {
+                u = JSON.parse(saved);
+                startSession();
+            }
+            animateBackground();
+        });
+
+        function animateBackground() {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00'];
+            let i = 0;
+            setInterval(() => {
+                document.body.style.background = `linear-gradient(45deg, #050505, ${colors[i]})`;
+                i = (i + 1) % colors.length;
+            }, 10000);
+        }
+
+        async function refreshUserData() {
+            if (!u) return;
+            const { data } = await sb.from('profiles').select('*').eq('username', u.username).single();
+            if (data) {
+                u = data;
+                localStorage.setItem('bw_session', JSON.stringify(u));
+                checkBanStatus();
+                updateUI();
+                loadInventory();
+                checkTasks();
+            }
+        }
+        setInterval(refreshUserData, 8000);
+
+        async function loadInventory() {
+            if (!u) return;
+            const { data } = await sb.from('inventory').select('*').eq('username', u.username);
+            inventory = data || [];
+            updateInventoryUI();
+        }
+
+        function updateInventoryUI() {
+            const container = document.getElementById('inventory-items');
+            if (!container) return;
+            container.innerHTML = inventory.length ? inventory.map(item => `
+                <div class="glass inventory-item p-4 rounded-2xl flex justify-between items-center border-l-4 border-${ITEMS[item.item_type]?.color || 'red-600'} animate__animated animate__fadeIn">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">${ITEMS[item.item_type]?.icon || '📦'}</span>
+                        <div>
+                            <p class="font-black italic text-xs uppercase">${ITEMS[item.item_type]?.name || item.item_type}</p>
+                            <p class="text-[8px] text-gray-500">Кол-во: ${item.quantity}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="useItem('${item.item_type}', ${item.id})" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg text-[8px] font-bold transition">Применить</button>
+                        <button onclick="showItemInfo('${item.item_type}')" class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-lg text-[8px] font-bold transition">Инфо</button>
+                    </div>
+                </div>
+            `).join('') : `<p class="text-gray-500 text-center py-4">Инвентарь пуст</p>`;
+        }
+
+        async function useItem(itemType, itemId) {
+            if (!u) return;
+            
+            switch(itemType) {
+                case 'gold_key':
+                    if (confirm("Использовать золотой ключ для открытия золотого кейса?")) {
+                        await openCase('gold', true);
+                        await removeItem(itemId);
+                    }
+                    break;
+                case 'silver_key':
+                    if (confirm("Использовать серебряный ключ для открытия серебряного кейса?")) {
+                        await openCase('silver', true);
+                        await removeItem(itemId);
+                    }
+                    break;
+                case 'booster_2x':
+                    activateBooster(2);
+                    await removeItem(itemId);
+                    break;
+                case 'lucky_coin':
+                    activateLuckyCoin();
+                    await removeItem(itemId);
+                    break;
+                default:
+                    showItemInfo(itemType);
+            }
+        }
+
+        async function removeItem(itemId) {
+            await sb.from('inventory').delete().eq('id', itemId);
+            loadInventory();
+        }
+
+        function showItemInfo(itemType) {
+            const item = ITEMS[itemType];
+            const text = document.getElementById('key-instruction-text');
+            text.innerHTML = `
+                <p class="font-bold text-lg">${item.icon} ${item.name}</p>
+                <p class="text-gray-400">${item.description}</p>
+                <p class="text-[10px] text-yellow-500 mt-4">ИНСТРУКЦИЯ:</p>
+                <p class="text-[10px]">1. Нажмите "Применить" в инвентаре</p>
+                <p class="text-[10px]">2. Подтвердите использование</p>
+                <p class="text-[10px]">3. Получите бонусы автоматически</p>
+            `;
+            document.getElementById('key-instruction-modal').classList.remove('hidden');
+        }
+
+        function showInventory() {
+            document.getElementById('inventory-modal').classList.remove('hidden');
+            loadInventory();
+        }
+
+        let activeBooster = null;
+        function activateBooster(multiplier) {
+            activeBooster = {multiplier, expires: Date.now() + 3600000};
+            showModal("БУСТЕР АКТИВИРОВАН", `x${multiplier} к выигрышам на 1 час!`);
+            setTimeout(() => {
+                activeBooster = null;
+                triggerBroadcast("СИСТЕМА", "Ваш бустер закончился");
+            }, 3600000);
+        }
+
+        function activateLuckyCoin() {
+            showModal("СЧАСТЛИВАЯ МОНЕТА", "Шанс выигрыша увеличен на 10% на следующие 5 игр!");
+        }
+
+        function checkBanStatus() {
+            if (u && u.is_banned) {
+                document.getElementById('ban-reason-text').innerText = u.ban_reason || "Не указана";
+                document.getElementById('ban-overlay').classList.remove('hidden');
+            } else {
+                document.getElementById('ban-overlay').classList.add('hidden');
+            }
+        }
+
+        async function smartAuth() {
+            const n = document.getElementById('auth-nick').value.trim().toUpperCase();
+            const p = document.getElementById('auth-pass').value.trim();
+            if(!n || !p) return;
+            const { data } = await sb.from('profiles').select('*').eq('username', n).maybeSingle();
+            if(data) {
+                if(data.password === p) { 
+                    u = data; 
+                    localStorage.setItem('bw_session', JSON.stringify(u));
+                    startSession(); 
+                }
+                else showModal("ОШИБКА", "Неверный пароль");
+            } else {
+                const { data: nU } = await sb.from('profiles').insert([{username: n, password: p, balance: 1000, bank_balance: 0, xp: 0}]).select().single();
+                u = nU; 
+                localStorage.setItem('bw_session', JSON.stringify(u));
+                startSession();
+            }
+        }
+
+        function startSession() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            if (u.is_admin) document.getElementById('n-admin').classList.remove('hidden');
+            checkBanStatus();
+            updateUI(); 
+            renderCases(); 
+            initRealtime(); 
+            loadFriends();
+            loadInventory();
+            renderTasks();
+            animateBalance();
+        }
+
+        function animateBalance() {
+            const balanceEl = document.getElementById('ui-balance');
+            balanceEl.classList.add('animate__pulse');
+            setTimeout(() => balanceEl.classList.remove('animate__pulse'), 1000);
+        }
+
+        async function updateUI() {
+            if(!u) return;
+            document.getElementById('ui-nick').innerText = u.username;
+            document.getElementById('ui-balance').innerText = u.balance.toLocaleString() + ' BC';
+            document.getElementById('ui-bank-balance').innerText = u.bank_balance.toLocaleString() + ' BC';
+            document.getElementById('ui-xp-total').innerText = u.xp.toLocaleString();
+
+            const lvl = Math.floor(u.xp / 1000) + 1;
+            const xpInLevel = u.xp % 1000;
+            const progress = (xpInLevel / 1000) * 100;
+
+            document.getElementById('bp-lvl').innerText = lvl;
+            document.getElementById('bp-xp-current').innerText = xpInLevel;
+            document.getElementById('bp-progress').style.width = progress + '%';
+
+            const claimedLvl = parseInt(localStorage.getItem('claimed_lvl_' + u.username) || '0');
+            const claimBtn = document.getElementById('bp-claim-btn');
+
+            if (lvl > claimedLvl) {
+                claimBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                claimBtn.classList.add('red-btn');
+                claimBtn.innerText = `Забрать награду за ${lvl} LVL`;
+            } else {
+                claimBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                claimBtn.classList.remove('red-btn');
+                claimBtn.innerText = "Награда получена";
+            }
+        }
+
+        async function executeAdminCommand() {
+            if (!u.is_admin) return showModal("ОШИБКА", "Нет прав администратора!");
+            
+            const input = document.getElementById('admin-input');
+            const fullCmd = input.value.trim();
+            if (!fullCmd) return;
+
+            const parts = fullCmd.split(' ');
+            const cmd = parts[0].toLowerCase();
+            const targetNick = parts[1] ? parts[1].toUpperCase() : null;
+            const value = parts[2];
+            const value2 = parts[3];
+            const value3 = parts[4];
+
+            try {
+                switch(cmd) {
+                    case '/setbc':
+                        if (!targetNick || !value) throw "Формат: /setbc (ник) (число)";
+                        await sb.from('profiles').update({ balance: parseInt(value) }).eq('username', targetNick);
+                        showModal("УСПЕХ", `Баланс ${targetNick} изменен на ${value}`);
+                        break;
+
+                    case '/setxp':
+                        if (!targetNick || !value) throw "Формат: /setxp (ник) (число)";
+                        await sb.from('profiles').update({ xp: parseInt(value) }).eq('username', targetNick);
+                        showModal("УСПЕХ", `XP ${targetNick} изменен на ${value}`);
+                        break;
+
+                    case '/globalalert':
+                        const msg = parts.slice(1).join(' ');
+                        if (!msg) throw "Формат: /globalalert (текст)";
+                        await sb.from('global_alerts').insert([{ sender: 'АДМИНИСТРАТОР', message: msg }]);
+                        showModal("УСПЕХ", "Сообщение отправлено всем");
+                        break;
+
+                    case '/ban':
+                        const reason = parts.slice(2).join(' ') || "Нарушение правил";
+                        if (!targetNick) throw "Формат: /ban (ник) (причина)";
+                        await sb.from('profiles').update({ is_banned: true, ban_reason: reason }).eq('username', targetNick);
+                        showModal("УСПЕХ", `Игрок ${targetNick} забанен`);
+                        break;
+
+                    case '/unban':
+                        if (!targetNick) throw "Формат: /unban (ник)";
+                        await sb.from('profiles').update({ is_banned: false, ban_reason: '' }).eq('username', targetNick);
+                        showModal("УСПЕХ", `Игрок ${targetNick} разбанен`);
+                        break;
+
+                    case '/additem':
+                        if (!targetNick || !value || !value2) throw "Формат: /additem (ник) (тип) (кол-во)";
+                        await sb.from('inventory').insert([{username: targetNick, item_type: value, quantity: parseInt(value2)}]);
+                        showModal("УСПЕХ", `Предмет добавлен ${targetNick}`);
+                        break;
+
+                    case '/createpromo':
+                        if (!value || !value2 || !value3) throw "Формат: /createpromo (код) (bc) (xp) (кол-во)";
+                        await sb.from('promo_codes').insert([{code: value, reward_bc: parseInt(value2), reward_xp: parseInt(value3), uses_left: parseInt(parts[4] || 50)}]);
+                        showModal("УСПЕХ", `Промокод ${value} создан`);
+                        break;
+
+                    case '/event':
+                        const action = parts[1];
+                        if (action === 'start') {
+                            const eventName = parts.slice(2).join(' ');
+                            await sb.from('events').insert([{name: eventName, is_active: true}]);
+                            currentEvent = eventName;
+                            showModal("ИВЕНТ", `Ивент "${eventName}" начат!`);
+                        } else if (action === 'stop') {
+                            await sb.from('events').update({is_active: false}).eq('is_active', true);
+                            currentEvent = null;
+                            showModal("ИВЕНТ", "Ивент остановлен");
+                        }
+                        break;
+
+                    case '/givekey':
+                        if (!targetNick || !value) throw "Формат: /givekey (ник) (тип)";
+                        await sb.from('inventory').insert([{username: targetNick, item_type: value + '_key', quantity: 1}]);
+                        showModal("УСПЕХ", `Ключ выдан ${targetNick}`);
+                        break;
+
+                    case '/clearchat':
+                        if (!targetNick) throw "Формат: /clearchat (ник)";
+                        await sb.from('messages').delete().or(`sender.eq.${targetNick},receiver.eq.${targetNick}`);
+                        showModal("УСПЕХ", `Чат очищен для ${targetNick}`);
+                        break;
+
+                    case '/resetprogress':
+                        if (!targetNick) throw "Формат: /resetprogress (ник)";
+                        await sb.from('profiles').update({balance: 1000, bank_balance: 0, xp: 0}).eq('username', targetNick);
+                        showModal("УСПЕХ", `Прогресс сброшен для ${targetNick}`);
+                        break;
+
+                    default:
+                        showModal("ОШИБКА", "Неизвестная команда");
+                }
+                input.value = '';
+            } catch (err) {
+                showModal("ОШИБКА", err);
+            }
+        }
+
+        async function usePromo() {
+            const codeInput = document.getElementById('promo-input');
+            const code = codeInput.value.trim().toUpperCase();
+            if(!code) return;
+            const usedKey = `promo_${code}_${u.username}`;
+            if(localStorage.getItem(usedKey)) return showModal("ОШИБКА", "Промокод уже использован!");
+            const { data, error } = await sb.from('promo_codes').select('*').eq('code', code).single();
+            if(error || !data) return showModal("ОШИБКА", "Промокод не найден!");
+            if(data.uses_left <= 0) return showModal("ОШИБКА", "Промокод закончился!");
+            await updateData(data.reward_bc, data.reward_xp);
+            await sb.from('promo_codes').update({ uses_left: data.uses_left - 1 }).eq('code', code);
+            localStorage.setItem(usedKey, 'true');
+            codeInput.value = '';
+            showModal("ПРОМОКОД", `Активирован! +${data.reward_bc} BC и ${data.reward_xp} XP`);
+            createCoins(10);
+        }
+
+        function triggerBroadcast(sender, text) {
+            const el = document.getElementById('global-broadcast');
+            document.getElementById('broadcast-sender').innerText = sender;
+            document.getElementById('broadcast-text').innerText = text;
+            el.classList.add('show');
+            setTimeout(() => { el.classList.remove('show'); }, 15000);
+        }
+
+        async function claimPassReward() {
+            const lvl = Math.floor(u.xp / 1000) + 1;
+            const claimedLvl = parseInt(localStorage.getItem('claimed_lvl_' + u.username) || '0');
+            if (lvl <= claimedLvl) return;
+            let reward = 0;
+            if (lvl >= 1 && lvl <= 10) reward = Math.floor(Math.random() * (50000 - 5000)) + 5000;
+            else if (lvl >= 11 && lvl <= 19) reward = Math.floor(Math.random() * (70000 - 30000)) + 30000;
+            else if (lvl === 20 || lvl === 21) reward = 100000;
+            else if (lvl === 22) {
+                await sb.from('inventory').insert([{username: u.username, item_type: 'gold_key', quantity: 1}]);
+                showModal("ЗОЛОТОЙ КЛЮЧ", "Получен золотой ключ! Используйте его в инвентаре.");
+                loadInventory();
+            }
+            else if (lvl >= 23 && lvl <= 30) reward = Math.floor(Math.random() * (2000000 - 300000)) + 300000;
+            localStorage.setItem('claimed_lvl_' + u.username, lvl);
+            if (reward > 0) {
+                await updateData(reward, 0);
+                showModal("BLACK PASS", `Награда: ${reward.toLocaleString()} BC!`);
+                createCoins(15);
+            }
+            updateUI();
+        }
+
+        function showSection(n) {
+            document.querySelectorAll('.section').forEach(s => {
+                s.classList.remove('active');
+                setTimeout(() => s.style.display = 'none', 400);
+            });
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+            setTimeout(() => {
+                const el = document.getElementById('s-'+n);
+                el.style.display = 'block';
+                setTimeout(() => el.classList.add('active'), 10);
+            }, 10);
+            document.getElementById('n-'+n).classList.add('nav-active');
+            if(n === 'top') loadTop();
+            if(n === 'social') loadFriends();
+            if(n === 'games') renderTasks();
+        }
+
+        async function updateData(b, x) {
+            if (activeBooster && b > 0) {
+                b *= activeBooster.multiplier;
+                showModal("БУСТЕР", `x${activeBooster.multiplier} активирован! Выигрыш: ${b.toLocaleString()} BC`);
+            }
+            const { data } = await sb.from('profiles').update({ balance: u.balance + b, xp: u.xp + x }).eq('username', u.username).select().single();
+            u = data; 
+            localStorage.setItem('bw_session', JSON.stringify(u));
+            updateUI();
+            checkTasks();
+        }
+
+        function createCoins(count) {
+            for(let i = 0; i < count; i++) {
+                const coin = document.createElement('div');
+                coin.className = 'coin-animation';
+                coin.style.left = Math.random() * window.innerWidth + 'px';
+                coin.style.top = Math.random() * window.innerHeight + 'px';
+                coin.style.setProperty('--tx', (Math.random() - 0.5) * 200 + 'px');
+                coin.style.setProperty('--ty', (Math.random() - 0.5) * 200 + 'px');
+                document.body.appendChild(coin);
+                setTimeout(() => coin.remove(), 1000);
+            }
+        }
+
+        async function playBinary() {
+            if(u.balance < 1000) return showModal("ОШИБКА", "Мало BC!");
+            const win = Math.random() > 0.5;
+            await updateData(win ? 1000 : -1000, 50);
+            showModal(win ? "ПОБЕДА" : "ПРОИГРЫШ", win ? "+1000 BC" : "-1000 BC");
+            if(win) createCoins(5);
+        }
+
+        async function playRoulette() {
+            if(u.balance < 2000) return showModal("ОШИБКА", "Мало BC!");
+            const r = Math.random();
+            let res = -2000, msg = "-2000 BC";
+            if(r > 0.8) { res = 4000; msg = "ВИН X3! +4000 BC"; }
+            else if(r > 0.5) { res = 1000; msg = "ВИН! +1000 BC"; }
+            await updateData(res, 100);
+            showModal("РУЛЕТКА", msg);
+            if(res > 0) createCoins(8);
+        }
+
+        function startHL() {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            if(u.balance < bet) return showModal("ОШИБКА", "Мало BC");
+            hlBase = Math.floor(Math.random() * 80) + 10;
+            document.getElementById('hl-num').innerText = hlBase;
+            document.getElementById('hl-num').classList.add('animate__pulse');
+            setTimeout(() => document.getElementById('hl-num').classList.remove('animate__pulse'), 1000);
+            document.getElementById('hl-setup').classList.add('hidden');
+            document.getElementById('hl-action').classList.remove('hidden');
+        }
+
+        async function playHL(c) {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            const n = Math.floor(Math.random() * 100) + 1;
+            const win = (c === 'high' && n > hlBase) || (c === 'low' && n < hlBase);
+            await updateData(win ? bet : -bet, 150);
+            showModal(win ? "ПОБЕДА" : "ПРОИГРЫШ", `Число: ${n}. ${win ? '+'+bet : -bet} BC`);
+            document.getElementById('hl-num').innerText = '?';
+            document.getElementById('hl-setup').classList.remove('hidden');
+            document.getElementById('hl-action').classList.add('hidden');
+            if(win) createCoins(10);
+        }
+
+        async function bankAction(type) {
+            const val = prompt("Введите сумму:");
+            const amt = parseInt(val);
+            if(!amt || amt <= 0) return;
+            let nB = u.balance, nBK = u.bank_balance;
+            if(type === 'dep') {
+                if(amt > u.balance) return showModal("ОШИБКА", "Мало на руках");
+                nB -= amt; nBK += amt;
+            } else {
+                if(amt > u.bank_balance) return showModal("ОШИБКА", "Мало в банке");
+                nB += amt; nBK -= amt;
+            }
+            const { data } = await sb.from('profiles').update({ balance: nB, bank_balance: nBK }).eq('username', u.username).select().single();
+            u = data; 
+            localStorage.setItem('bw_session', JSON.stringify(u));
+            updateUI();
+            checkTasks();
+        }
+
+        async function sendMessage() {
+            const txt = document.getElementById('chat-input').value.trim();
+            if(!txt || !activeFriend) return;
+            await sb.from('messages').insert([{ sender: u.username, receiver: activeFriend, text: txt }]);
+            document.getElementById('chat-input').value = '';
+        }
+
+        async function loadMessages() {
+            const { data } = await sb.from('messages').select('*')
+                .or(`and(sender.eq.${u.username},receiver.eq.${activeFriend}),and(sender.eq.${activeFriend},receiver.eq.${u.username})`)
+                .order('created_at', { ascending: true });
+            const box = document.getElementById('chat-box');
+            box.innerHTML = data.map(m => `
+                <div class="flex ${m.sender === u.username ? 'justify-end' : 'justify-start'} animate__animated animate__fadeIn">
+                    <div class="${m.sender === u.username ? 'bg-red-600' : 'bg-white/10'} p-3 rounded-2xl max-w-[80%] text-[10px]">
+                        <p class="font-bold mb-1 uppercase text-[7px] opacity-50">${m.sender}</p>
+                        <p>${m.text}</p>
+                    </div>
+                </div>`).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function openFriendMenu(name) {
+            activeFriend = name;
+            document.getElementById('active-friend-nick').innerText = name;
+            document.getElementById('friend-menu').classList.add('open');
+            loadMessages();
+        }
+        function closeFriendMenu() { document.getElementById('friend-menu').classList.remove('open'); activeFriend = null; }
+
+        function renderCases() {
+            document.getElementById('case-list').innerHTML = CASES.map((c, i) => `
+                <div class="glass p-5 rounded-3xl flex justify-between items-center border-l-4 border-${c.color} animate__animated animate__fadeInUp" style="animation-delay: ${i * 0.1}s">
+                    <div>
+                        <p class="font-black italic text-xs uppercase">${c.name}</p>
+                        <p class="text-red-600 text-[10px] font-bold">${c.price.toLocaleString()} BC</p>
+                    </div>
+                    <button onclick="openCase('${c.id}')" class="red-btn px-6 py-3 rounded-xl text-[10px] hover:scale-105 transition">ОТКРЫТЬ</button>
+                </div>`).join('');
+        }
+
+        async function openCase(id, free = false) {
+            const c = CASES.find(x => x.id === id);
+            let finalPrice = free ? 0 : c.price;
+            if(u.balance < finalPrice) return showModal("ОШИБКА", "Мало BC");
+            const isWin = Math.random() < c.winRate;
+            let winB = isWin ? Math.floor(Math.random() * (c.maxB - c.price)) + c.price : Math.floor(Math.random() * (c.price * 0.6));
+            await updateData(winB - finalPrice, 300);
+            showModal("КЕЙС", `Вы получили: ${winB.toLocaleString()} BC! ${isWin ? 'ОКУП!' : 'НЕ ПОВЕЗЛО'}`);
+            if(winB > c.price) createCoins(20);
+        }
+
+        async function sendFriendReq() {
+            const to = document.getElementById('target-nick').value.trim().toUpperCase();
+            if(!to || to === u.username) return;
+            await sb.from('interactions').insert([{ from_user: u.username, to_user: to, type: 'friend_req' }]);
+            showModal("УСПЕХ", "Запрос в друзья отправлен!");
+            checkTasks();
+        }
+
+        async function loadFriends() {
+            const { data } = await sb.from('friendships').select('*').or(`user1.eq.${u.username},user2.eq.${u.username}`);
+            document.getElementById('friends-list').innerHTML = data.map(f => {
+                const n = f.user1 === u.username ? f.user2 : f.user1;
+                return `<div class="glass p-4 rounded-2xl flex justify-between items-center animate__animated animate__fadeIn">
+                    <span class="font-black text-sm uppercase">${n}</span>
+                    <button onclick="openFriendMenu('${n}')" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-xl text-[10px] font-black italic transition">СВЯЗЬ</button>
+                </div>`;
+            }).join('');
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('tasks-container');
+            if (!container) return;
+            container.innerHTML = `
+                <p class="text-[10px] font-black text-red-600 uppercase mb-2">ЗАДАНИЯ BLACK PASS</p>
+                ${tasks.map((task, i) => `
+                    <div class="glass p-3 rounded-xl ${localStorage.getItem('task_'+task.id+'_'+u.username) ? 'task-complete' : ''} animate__animated animate__fadeIn" style="animation-delay: ${i * 0.2}s">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-bold text-xs">${task.title}</p>
+                                <p class="text-[8px] text-gray-500">${task.description}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[8px] text-green-500 font-black">+${task.reward_bc} BC</p>
+                                <p class="text-[7px] text-yellow-500">+${task.reward_xp} XP</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function checkTasks() {
+            if (!u) return;
+            tasks.forEach(async task => {
+                if (localStorage.getItem('task_'+task.id+'_'+u.username)) return;
+                
+                let completed = false;
+                switch(task.type) {
+                    case 'win_game':
+                        if (u.xp > 0) completed = true;
+                        break;
+                    case 'bank_deposit':
+                        if (u.bank_balance >= 5000) completed = true;
+                        break;
+                    case 'add_friends':
+                        const { data } = await sb.from('friendships').select('*').or(`user1.eq.${u.username},user2.eq.${u.username}`);
+                        if (data.length >= 3) completed = true;
+                        break;
+                    case 'make_bets':
+                        if (u.xp >= 500) completed = true;
+                        break;
+                    case 'rich_balance':
+                        if (u.balance >= 100000) completed = true;
+                        break;
+                }
+                
+                if (completed) {
+                    localStorage.setItem('task_'+task.id+'_'+u.username, 'true');
+                    await updateData(task.reward_bc, task.reward_xp);
+                    showModal("ЗАДАНИЕ ВЫПОЛНЕНО", `${task.title}! Награда: ${task.reward_bc} BC`);
+                    renderTasks();
+                }
+            });
+        }
+
+        async function loadTop() {
+            const { data } = await sb.from('profiles').select('username, balance, xp').order('balance', { ascending: false }).limit(10);
+            const box = document.getElementById('leaderboard');
+            
+            box.innerHTML = `
+                <div class="py-6 text-center animate__animated animate__fadeInDown">
+                    <h2 class="font-black text-2xl italic text-red-600 uppercase tracking-tighter">ТОП 10 БОГАТЫХ</h2>
+                    <p class="text-[9px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">ИГРОКОВ Black Win</p>
+                </div>
+            ` + data.map((it, i) => {
+                const lvl = Math.floor(it.xp / 1000) + 1;
+                return `
+                <div class="glass p-4 rounded-2xl flex justify-between items-center mb-2 border-r-2 ${i < 3 ? 'border-red-600' : 'border-transparent'} animate__animated animate__fadeInUp" style="animation-delay: ${i * 0.1}s">
+                    <div class="flex items-center">
+                        <span class="font-black text-red-600 w-6 text-sm">#${i+1}</span>
+                        <div class="ml-4">
+                            <p class="font-bold uppercase text-xs leading-none">${it.username}</p>
+                            <p class="text-[8px] text-gray-500 font-black mt-1 uppercase tracking-wider">Level: <span class="text-white">${lvl}</span></p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-black italic text-white text-sm">${it.balance.toLocaleString()}</span>
+                        <span class="text-[8px] font-black text-red-600 ml-1 italic">BC</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function initRealtime() {
+            sb.channel('global').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
+                if(activeFriend && (p.new.sender === activeFriend || p.new.receiver === activeFriend)) loadMessages();
+            }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
+                const r = p.new;
+                if(r.to_user !== u.username) return;
+                if(r.type === 'friend_req') {
+                    if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
+                        await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
+                        loadFriends();
+                    }
+                }
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_alerts' }, p => {
+                triggerBroadcast(p.new.sender, p.new.message);
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, p => {
+                if (u && p.new.username === u.username) {
+                    u = p.new;
+                    localStorage.setItem('bw_session', JSON.stringify(u));
+                    checkBanStatus();
+                    updateUI();
+                }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, p => {
+                if (p.new.username === u.username) {
+                    loadInventory();
+                }
+            })
+            .subscribe();
+        }
+
+        function showModal(t, d) {
+            document.getElementById('modal-title').innerText = t;
+            document.getElementById('modal-desc').innerText = d;
+            document.getElementById('game-modal').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('game-modal').classList.add('hidden'); }
+    </script>
+</body>
+</html>
