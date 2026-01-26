@@ -532,24 +532,60 @@
             showModal("КЕЙС", `Вы получили: ${winB.toLocaleString()} BC! ${isWin ? 'ОКУП!' : 'НЕ ПОВЕЗЛО'}`);
         }
 
+        // --- СИСТЕМА ВЗАИМОДЕЙСТВИЯ (BLACK WIN) ---
+
         async function sendFriendReq() {
-            const to = document.getElementById('target-nick').value.trim().toUpperCase();
+            const input = document.getElementById('target-nick');
+            const to = input.value.trim().toUpperCase();
+            
             if(!to || to === u.username) return;
-            await sb.from('interactions').insert([{ from_user: u.username, to_user: to, type: 'friend_req' }]);
-            alert("Запрос в друзья отправлен!");
+
+            // Отправляем запрос в таблицу interactions
+            const { error } = await sb.from('interactions').insert([
+                { from_user: u.username, to_user: to, type: 'friend_req' }
+            ]);
+
+            if (error) {
+                alert("Ошибка: игрок не найден или запрос уже отправлен");
+            } else {
+                alert("Запрос в друзья отправлен!");
+                input.value = "";
+            }
         }
 
         async function loadFriends() {
-            const { data } = await sb.from('friendships').select('*').or(`user1.eq.${u.username},user2.eq.${u.username}`);
-            document.getElementById('friends-list').innerHTML = data.map(f => {
+            const { data, error } = await sb
+                .from('friendships')
+                .select('*')
+                .or(`user1.eq.${u.username},user2.eq.${u.username}`);
+
+            if (error) return console.error(error);
+
+            const list = document.getElementById('friends-list');
+            if (!data || data.length === 0) {
+                list.innerHTML = '<p class="text-[10px] text-gray-500 text-center py-4 uppercase font-bold">Список друзей пуст</p>';
+                return;
+            }
+
+            list.innerHTML = data.map(f => {
                 const n = f.user1 === u.username ? f.user2 : f.user1;
-                return `<div class="glass p-4 rounded-2xl flex justify-between items-center"><span class="font-black text-sm uppercase">${n}</span><button onclick="openFriendMenu('${n}')" class="bg-red-600 px-4 py-2 rounded-xl text-[10px] font-black italic">СВЯЗЬ</button></div>`;
+                return `
+                <div class="glass p-4 rounded-2xl flex justify-between items-center mb-2 animate__animated animate__fadeIn">
+                    <span class="font-black text-sm uppercase">${n}</span>
+                    <button onclick="openFriendMenu('${n}')" class="bg-red-600 px-4 py-2 rounded-xl text-[10px] font-black italic">СВЯЗЬ</button>
+                </div>`;
             }).join('');
         }
 
         async function loadTop() {
-            const { data } = await sb.from('profiles').select('username, balance, xp').order('balance', { ascending: false }).limit(10);
+            const { data } = await sb
+                .from('profiles')
+                .select('username, balance, xp')
+                .order('balance', { ascending: false })
+                .limit(10);
+
             const box = document.getElementById('leaderboard');
+            if (!data) return;
             
             box.innerHTML = `
                 <div class="py-6 text-center">
@@ -577,26 +613,31 @@
 
         function initRealtime() {
             sb.channel('global').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
-                if(activeFriend && (p.new.sender === activeFriend || p.new.receiver === activeFriend)) loadMessages();
+                if(typeof activeFriend !== 'undefined' && activeFriend && (p.new.sender === activeFriend || p.new.receiver === activeFriend)) {
+                    loadMessages();
+                }
             }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
                 const r = p.new;
                 if(r.to_user !== u.username) return;
+                
                 if(r.type === 'friend_req') {
                     if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
                         await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
+                        // Удаляем запрос после принятия, чтобы не всплывал снова
+                        await sb.from('interactions').delete().eq('id', r.id);
                         loadFriends();
                     }
                 }
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_alerts' }, p => {
-                triggerBroadcast(p.new.sender, p.new.message);
+                if(typeof triggerBroadcast === 'function') triggerBroadcast(p.new.sender, p.new.message);
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, p => {
                 if (u && p.new.username === u.username) {
                     u = p.new;
                     localStorage.setItem('bw_session', JSON.stringify(u));
-                    checkBanStatus();
-                    updateUI();
+                    if(typeof checkBanStatus === 'function') checkBanStatus();
+                    if(typeof updateUI === 'function') updateUI();
                 }
             })
             .subscribe();
@@ -607,7 +648,17 @@
             document.getElementById('modal-desc').innerText = d;
             document.getElementById('game-modal').classList.remove('hidden');
         }
-        function closeModal() { document.getElementById('game-modal').classList.add('hidden'); }
+
+        function closeModal() { 
+            document.getElementById('game-modal').classList.add('hidden'); 
+        }
+
+        // Запуск инициализации при загрузке
+        window.onload = () => {
+            if (typeof initRealtime === 'function') initRealtime();
+            if (typeof loadTop === 'function') loadTop();
+            if (typeof loadFriends === 'function') loadFriends();
+        };
     </script>
 </body>
 </html>
