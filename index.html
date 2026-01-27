@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Black Win | Ultra System</title>
+    <title>Black Win | Elite Fixed</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -12,46 +12,45 @@
         :root { --red: #ff0000; --dark: #050505; }
         body { font-family: 'Inter', sans-serif; background: var(--dark); color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .font-black { font-family: 'Montserrat', sans-serif; font-weight: 900; }
-        .red-btn { background: linear-gradient(90deg, #ff0000, #a00000); transition: 0.2s; text-transform: uppercase; font-weight: 900; }
+        .red-btn { background: linear-gradient(90deg, #ff0000, #a00000); transition: 0.2s; text-transform: uppercase; font-weight: 900; cursor: pointer; }
         .red-btn:active { transform: scale(0.95); }
         .glass { background: #0f0f0f; border: 1px solid rgba(255, 0, 0, 0.15); }
         .section { display: none; }
         .section.active { display: block; animation: fadeIn 0.3s; }
-        .nav-active { color: var(--red); filter: drop-shadow(0 0 5px var(--red)); }
+        .nav-active { color: var(--red); filter: drop-shadow(0 0 8px var(--red)); }
         input { background: #151515 !important; border: 1px solid #333 !important; color: white !important; outline: none; text-align: center; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .pass-card { background: linear-gradient(135deg, #1a1a1a 0%, #000 100%); border: 1px solid #ff000033; }
-        #transfer-toast { position: fixed; top: -150px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 4000; transition: 0.5s; }
+        #transfer-toast { position: fixed; top: -150px; left: 50%; transform: translateX(-50%); width: 95%; max-width: 400px; z-index: 5000; transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         #transfer-toast.show { top: 20px; }
-        .admin-cmd-list { font-size: 10px; text-align: left; color: #888; background: #000; padding: 10px; border-radius: 15px; margin-top: 10px; }
-        .admin-cmd-list b { color: #ff0000; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .pass-card { background: linear-gradient(135deg, #1a1a1a 0%, #000 100%); border: 1px solid #ff000033; position: relative; overflow: hidden; }
+        .pass-card::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,0,0,0.05) 0%, transparent 70%); }
     </style>
 </head>
 <body class="pb-28">
 
-    <div id="transfer-toast" class="glass p-4 rounded-2xl border-l-4 border-green-500 shadow-2xl bg-black/95">
-        <div class="flex justify-between items-start">
+    <div id="transfer-toast" class="glass p-4 rounded-3xl border-l-4 border-green-500 shadow-2xl bg-black/95">
+        <div class="flex justify-between items-center">
             <div>
-                <p class="text-[10px] font-black text-green-500 uppercase mb-1 tracking-widest">ВХОДЯЩИЙ ПЕРЕВОД</p>
-                <p id="tr-sender" class="text-xs text-gray-400 font-bold">От: ???</p>
-                <p id="tr-amount" class="text-xl font-black italic text-white">+ 0 BC</p>
+                <p class="text-[10px] font-black text-green-500 uppercase mb-1">ВХОДЯЩИЙ ПЕРЕВОД</p>
+                <p id="tr-sender" class="text-xs text-white font-bold italic">От: ---</p>
+                <p id="tr-amount" class="text-lg font-black italic text-white">+ 0 BC</p>
             </div>
-            <div class="bg-green-500/20 p-2 rounded-full text-xl">💸</div>
+            <div class="bg-green-500/20 p-3 rounded-full text-xl">💸</div>
         </div>
     </div>
 
     <div id="transfer-modal" class="fixed inset-0 z-[1000] bg-black/95 flex items-center justify-center p-6 hidden">
-        <div class="glass p-8 rounded-[40px] w-full max-w-sm text-center border-t-4 border-blue-600 relative">
-            <button onclick="document.getElementById('transfer-modal').classList.add('hidden')" class="absolute top-4 right-6 text-gray-500 font-bold">✕</button>
-            <h2 class="font-black text-2xl mb-2 italic uppercase text-blue-500 text-center">ПЕРЕВОД BC</h2>
+        <div class="glass p-8 rounded-[40px] w-full max-w-sm text-center border-t-4 border-blue-600">
+            <h2 class="font-black text-2xl mb-4 italic uppercase text-blue-500">ПЕРЕВОД BC</h2>
             <div id="tr-step-1">
-                <input type="text" id="target-bank-id" placeholder="ID BANK" class="w-full p-4 rounded-2xl font-black uppercase mb-4">
-                <button onclick="checkTransferTarget()" class="bg-blue-600 w-full py-4 rounded-2xl font-black uppercase">Далее</button>
+                <input type="text" id="target-bank-id" placeholder="ID BANK ПОЛУЧАТЕЛЯ" class="w-full p-4 rounded-2xl font-black mb-4 uppercase">
+                <button onclick="checkTransferTarget()" class="bg-blue-600 w-full py-4 rounded-2xl font-black uppercase">НАЙТИ</button>
+                <button onclick="document.getElementById('transfer-modal').classList.add('hidden')" class="mt-4 text-gray-500 font-bold uppercase text-[10px]">ОТМЕНА</button>
             </div>
             <div id="tr-step-2" class="hidden">
-                <p id="tr-target-nick" class="font-black text-xl text-white italic mb-4 uppercase">???</p>
+                <p id="tr-target-nick" class="font-black text-xl text-white italic mb-4 uppercase"></p>
                 <input type="number" id="transfer-amount" placeholder="СУММА" class="w-full p-4 rounded-2xl font-black text-xl mb-4">
-                <button onclick="executeTransfer()" class="bg-green-600 w-full py-4 rounded-2xl font-black uppercase font-black italic">ОТПРАВИТЬ</button>
+                <button onclick="executeTransfer()" class="bg-green-600 w-full py-4 rounded-2xl font-black uppercase italic">ОТПРАВИТЬ</button>
             </div>
         </div>
     </div>
@@ -59,72 +58,70 @@
     <div id="game-modal" class="fixed inset-0 z-[500] bg-black/95 flex items-center justify-center p-6 hidden">
         <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center border-t-4 border-red-600">
             <h2 id="modal-title" class="font-black text-2xl mb-4 italic">РЕЗУЛЬТАТ</h2>
-            <p id="modal-desc" class="text-gray-400 mb-8 font-medium"></p>
-            <button onclick="document.getElementById('game-modal').classList.add('hidden')" class="red-btn w-full py-4 rounded-2xl">OK</button>
+            <p id="modal-desc" class="text-white mb-8 font-bold text-xl italic"></p>
+            <button onclick="document.getElementById('game-modal').classList.add('hidden')" class="red-btn w-full py-4 rounded-2xl">ЗАКРЫТЬ</button>
         </div>
     </div>
 
     <div id="auth-screen" class="fixed inset-0 z-[2000] bg-black flex items-center justify-center p-6">
         <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center">
-            <h1 class="font-black text-3xl text-red-600 mb-8 italic tracking-tighter uppercase">BLACK WIN</h1>
-            <div class="space-y-4">
-                <input type="text" id="auth-nick" placeholder="НИКНЕЙМ" class="w-full p-5 rounded-2xl font-bold uppercase">
-                <input type="password" id="auth-pass" placeholder="ПАРОЛЬ" class="w-full p-5 rounded-2xl font-bold">
-                <button onclick="smartAuth()" class="red-btn w-full py-5 rounded-2xl shadow-lg">ВХОД / СОЗДАТЬ</button>
-            </div>
+            <h1 class="font-black text-3xl text-red-600 mb-8 italic uppercase tracking-tighter">BLACK WIN</h1>
+            <input type="text" id="auth-nick" placeholder="НИКНЕЙМ" class="w-full p-5 rounded-2xl font-bold uppercase mb-4">
+            <input type="password" id="auth-pass" placeholder="ПАРОЛЬ" class="w-full p-5 rounded-2xl font-bold mb-6">
+            <button onclick="smartAuth()" class="red-btn w-full py-5 rounded-2xl shadow-lg">ВХОД / СОЗДАТЬ</button>
         </div>
     </div>
 
     <header class="p-6 flex justify-between items-center sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
         <div><h1 class="font-black text-lg text-red-600 italic">BLACK WIN</h1><p id="ui-nick" class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">---</p></div>
-        <div class="text-right"><p id="ui-balance" class="text-xl font-black italic">0 BC</p><p class="text-[9px] text-red-600 font-black italic">XP: <span id="ui-xp-total">0</span></p></div>
+        <div class="text-right"><p id="ui-balance" class="text-xl font-black italic">0 BC</p></div>
     </header>
 
     <main class="p-4 max-w-2xl mx-auto">
         <section id="s-games" class="section active space-y-6">
             <div class="pass-card p-6 rounded-[35px]">
                 <div class="flex justify-between items-end mb-4">
-                    <div><h2 class="font-black text-red-600 italic text-xl uppercase">BLACK PASS</h2><p class="text-[10px] text-gray-500 font-bold uppercase">Уровень <span id="bp-lvl">1</span></p></div>
-                    <div class="text-right"><p class="text-[10px] text-gray-500 font-bold uppercase"><span id="bp-xp-current">0</span> / 1000 XP</p></div>
+                    <div><h2 class="font-black text-red-600 italic text-xl uppercase">BLACK PASS</h2><p class="text-[10px] text-gray-400 font-bold uppercase">LEVEL <span id="bp-lvl">1</span></p></div>
+                    <div class="text-right"><p class="text-[10px] text-gray-400 font-bold uppercase"><span id="bp-xp-current">0</span> / 1000 XP</p></div>
                 </div>
-                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-4"><div id="bp-progress" class="bg-red-600 h-full transition-all duration-500" style="width: 0%"></div></div>
+                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden"><div id="bp-progress" class="bg-red-600 h-full transition-all duration-700" style="width: 0%"></div></div>
             </div>
             
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="playBinary()" class="glass p-6 rounded-[35px] text-center"><p class="text-[9px] font-black text-red-600 uppercase mb-2 italic">Удача 50/50</p><span class="red-btn px-4 py-2 rounded-xl text-[8px]">ИГРАТЬ</span></button>
-                <button onclick="playRoulette()" class="glass p-6 rounded-[35px] text-center"><p class="text-[9px] font-black text-red-600 uppercase mb-2 italic">Рулетка Х3</p><span class="red-btn px-4 py-2 rounded-xl text-[8px]">ИГРАТЬ</span></button>
+                <button onclick="playBinary()" class="glass p-6 rounded-[35px] text-center border-b-2 border-red-600/20"><p class="text-[10px] font-black text-red-600 uppercase mb-2">50/50</p><span class="text-[8px] font-bold opacity-50">STAKE BC</span></button>
+                <button onclick="playRoulette()" class="glass p-6 rounded-[35px] text-center border-b-2 border-red-600/20"><p class="text-[10px] font-black text-red-600 uppercase mb-2">ROULETTE X3</p><span class="text-[8px] font-bold opacity-50">CHANCE 30%</span></button>
             </div>
             
             <div class="glass p-8 rounded-[40px] text-center space-y-6">
-                <div class="bg-black py-10 rounded-[35px] border border-red-600/10 shadow-inner"><span id="hl-num" class="text-7xl font-black text-red-600 italic">?</span></div>
-                <div id="hl-setup"><input type="number" id="hl-bet" value="1000" class="w-full p-4 rounded-3xl text-lg font-black mb-4"><button onclick="startHL()" class="red-btn w-full py-5 rounded-[28px]">СТАВИТЬ</button></div>
-                <div id="hl-action" class="hidden flex gap-4"><button onclick="playHL('high')" class="flex-1 red-btn py-5 rounded-[25px]">ВЫШЕ</button> <button onclick="playHL('low')" class="flex-1 bg-white/5 py-5 rounded-[25px] font-black border border-white/5">НИЖЕ</button></div>
+                <div class="bg-black py-12 rounded-[35px] border border-red-600/20 shadow-inner"><span id="hl-num" class="text-7xl font-black text-red-600 italic">?</span></div>
+                <div id="hl-setup"><input type="number" id="hl-bet" value="1000" class="w-full p-4 rounded-3xl text-lg font-black mb-4"><button onclick="startHL()" class="red-btn w-full py-5 rounded-[28px]">СТАВИТЬ BC</button></div>
+                <div id="hl-action" class="hidden flex gap-4"><button onclick="playHL('high')" class="flex-1 red-btn py-6 rounded-[25px]">ВЫШЕ</button> <button onclick="playHL('low')" class="flex-1 bg-white/5 py-6 rounded-[25px] font-black border border-white/10">НИЖЕ</button></div>
             </div>
         </section>
 
         <section id="s-store" class="section space-y-4">
-            <h2 class="font-black text-center text-xl py-4 italic uppercase">МАГАЗИН КЕЙСОВ</h2>
+            <h2 class="font-black text-center text-xl py-4 italic uppercase text-red-600">CASES SHOP</h2>
             <div id="case-list" class="space-y-3"></div>
         </section>
 
         <section id="s-bank" class="section space-y-4">
             <div class="glass p-8 rounded-[40px] text-center border-t-4 border-red-600">
-                <h2 class="font-black text-xl mb-2 italic uppercase">BLACK BANK</h2>
-                <div class="bg-white/5 inline-block px-4 py-2 rounded-xl mb-6">
-                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">ВАШ ID BANK</p>
-                    <p id="ui-bank-id" class="text-lg font-black text-white select-all">????</p>
+                <h2 class="font-black text-2xl mb-2 italic uppercase">BLACK BANK</h2>
+                <div class="bg-white/5 inline-block px-6 py-2 rounded-2xl mb-6 border border-white/10">
+                    <p class="text-[8px] text-gray-400 font-bold uppercase tracking-widest">ВАШ ID BANK</p>
+                    <p id="ui-bank-id" class="text-lg font-black text-white select-all">ЗАГРУЗКА...</p>
                 </div>
                 <p id="ui-bank-balance" class="text-4xl font-black text-red-600 mb-8 italic">0 BC</p>
-                <button onclick="openTransferModal()" class="w-full bg-blue-600 py-4 rounded-2xl font-black mb-4 uppercase shadow-lg shadow-blue-900/50">✉️ ПЕРЕВОД</button>
+                <button onclick="openTransferModal()" class="w-full bg-blue-600 py-5 rounded-[25px] font-black mb-6 uppercase shadow-xl italic">✉️ ПЕРЕВОД</button>
                 <div class="grid grid-cols-2 gap-4">
-                    <button onclick="bankAction('dep')" class="red-btn py-4 rounded-2xl text-xs">ВКЛАД</button>
-                    <button onclick="bankAction('with')" class="bg-white/10 py-4 rounded-2xl font-bold text-xs">СНЯТЬ</button>
+                    <button onclick="bankAction('dep')" class="red-btn py-5 rounded-[25px] text-sm">ВКЛАД</button>
+                    <button onclick="bankAction('with')" class="bg-white/5 py-5 rounded-[25px] font-black text-sm border border-white/10">СНЯТЬ</button>
                 </div>
             </div>
         </section>
 
         <section id="s-top" class="section space-y-2">
-            <h2 class="font-black text-center text-xl py-4 italic uppercase text-red-600">ТОП БОГАТЕЕВ</h2>
+            <h2 class="font-black text-center text-xl py-4 italic uppercase text-red-600">TOP PLAYERS</h2>
             <div id="leaderboard-list" class="space-y-2"></div>
         </section>
 
@@ -133,18 +130,16 @@
                 <h2 class="font-black text-2xl mb-2 italic text-red-600 uppercase">ADMIN PANEL</h2>
                 <input type="text" id="admin-input" placeholder="Команда..." class="w-full p-5 rounded-2xl font-bold mb-4 text-left">
                 <button onclick="executeAdminCommand()" class="red-btn w-full py-5 rounded-2xl">ВЫПОЛНИТЬ</button>
-                <div class="admin-cmd-list space-y-1">
-                    <p><b>/setbc (ник) (число)</b> - Установить баланс</p>
-                    <p><b>/setxp (ник) (число)</b> - Установить XP</p>
-                    <p><b>/ban (ник) (причина)</b> - Забанить</p>
-                    <p><b>/unban (ник)</b> - Разбанить</p>
-                    <p><b>/globalalert (текст)</b> - Сообщение всем</p>
+                <div class="mt-4 text-[10px] text-gray-500 uppercase font-bold space-y-1 opacity-60">
+                    <p>/setbc [ник] [сумма] | /setxp [ник] [число]</p>
+                    <p>/ban [ник] [причина] | /unban [ник]</p>
+                    <p>/globalalert [текст]</p>
                 </div>
             </div>
         </section>
     </main>
 
-    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-md bg-black/90 backdrop-blur-2xl border border-white/10 p-2 rounded-[35px] flex justify-around items-center z-50">
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-md bg-black/90 backdrop-blur-2xl border border-white/10 p-2 rounded-[35px] flex justify-around items-center z-50 shadow-2xl">
         <button onclick="showSection('games')" id="n-games" class="nav-active p-3 text-xl">🎮</button>
         <button onclick="showSection('store')" id="n-store" class="p-3 text-xl">🛒</button>
         <button onclick="showSection('bank')" id="n-bank" class="p-3 text-xl">🏦</button>
@@ -160,14 +155,18 @@ const sb = supabase.createClient(SB_URL, SB_KEY);
 let u = null, hlBase = 0, tempTarget = null;
 
 const CASES = [
-    { id: 'bronze', name: 'БРОНЗОВЫЙ', price: 15000, color: 'orange-800', minB: 1000, maxB: 20000, winRate: 0.35 },
-    { id: 'silver', name: 'СЕРЕБРЯНЫЙ', price: 75000, color: 'slate-400', minB: 5000, maxB: 90000, winRate: 0.3 },
-    { id: 'gold', name: 'ЗОЛОТОЙ', price: 200000, color: 'yellow-500', minB: 20000, maxB: 300000, winRate: 0.25 },
-    { id: 'black', name: 'ULTRA', price: 500000, color: 'white', minB: 50000, maxB: 1000000, winRate: 0.2 }
+    { id: 'bronze', name: 'BRONZE', price: 15000, color: 'orange-800', minB: 5000, maxB: 25000, winRate: 0.35 },
+    { id: 'silver', name: 'SILVER', price: 75000, color: 'slate-400', minB: 20000, maxB: 120000, winRate: 0.3 },
+    { id: 'gold', name: 'GOLDEN', price: 200000, color: 'yellow-500', minB: 50000, maxB: 450000, winRate: 0.25 },
+    { id: 'black', name: 'ULTRA', price: 500000, color: 'white', minB: 100000, maxB: 1500000, winRate: 0.2 }
 ];
 
-// --- CORE ---
-function generateRandomID() { return Math.random().toString(36).substr(2, 5).toUpperCase(); }
+// --- CORE FUNCTIONS ---
+async function refreshData() {
+    if (!u) return;
+    const { data } = await sb.from('profiles').select('*').eq('username', u.username).single();
+    if (data) { u = data; updateUI(); }
+}
 
 async function updateData(bal, xp) {
     if (!u) return;
@@ -180,17 +179,14 @@ function updateUI() {
     document.getElementById('ui-nick').innerText = u.username;
     document.getElementById('ui-balance').innerText = u.balance.toLocaleString() + ' BC';
     document.getElementById('ui-bank-balance').innerText = u.bank_balance.toLocaleString() + ' BC';
-    document.getElementById('ui-xp-total').innerText = u.xp.toLocaleString();
-    document.getElementById('ui-bank-id').innerText = u.bank_id || 'ERROR';
+    document.getElementById('ui-bank-id').innerText = u.bank_id || "ERR";
     
-    const lvl = Math.floor(u.xp / 1000) || 1;
+    const lvl = Math.floor(u.xp / 1000) + 1;
     document.getElementById('bp-lvl').innerText = lvl;
     document.getElementById('bp-xp-current').innerText = u.xp % 1000;
     document.getElementById('bp-progress').style.width = (u.xp % 1000) / 10 + "%";
 
-    // СТРОГАЯ ПРОВЕРКА АДМИНКИ
     if (u.is_admin) document.getElementById('n-admin').classList.remove('hidden');
-    
     localStorage.setItem('bw_session', JSON.stringify(u));
 }
 
@@ -213,47 +209,45 @@ async function smartAuth() {
     const n = document.getElementById('auth-nick').value.trim().toUpperCase();
     const p = document.getElementById('auth-pass').value.trim();
     if(!n || !p) return;
+    
     let { data } = await sb.from('profiles').select('*').eq('username', n).maybeSingle();
     if(data) {
         if(data.password === p) { u = data; startSession(); }
         else alert("Неверный пароль");
     } else {
-        const bid = generateRandomID();
-        // При регистрации is_admin ВСЕГДА false. Менять только в SQL!
-        const { data: nU } = await sb.from('profiles').insert([{username: n, password: p, bank_id: bid, balance: 5000, xp: 0, bank_balance: 0, is_admin: false}]).select().single();
+        const { data: nU, error } = await sb.from('profiles').insert([{username: n, password: p, balance: 5000}]).select().single();
+        if(error) return alert("Ошибка создания аккаунта");
         u = nU; startSession();
     }
 }
 
 function startSession() {
     document.getElementById('auth-screen').classList.add('hidden');
-    updateUI();
+    refreshData();
     renderCases();
     setupRealtime();
 }
 
-// --- GAMES ---
+// --- GAMES (FIXED DESIGN) ---
 async function playBinary() {
-    const betStr = prompt("Введите сумму ставки:");
-    const bet = parseInt(betStr);
-    if (!bet || bet > u.balance || bet < 100) return alert("Ошибка ставки");
+    const bet = parseInt(prompt("Сумма ставки (50/50):"));
+    if (!bet || bet > u.balance || bet < 100) return alert("Ошибка суммы");
     const win = Math.random() > 0.5;
     await updateData(win ? bet : -bet, 50);
-    showModal("BINARY", win ? `ВЫИГРЫШ! +${bet.toLocaleString()} BC` : `ПРОИГРЫШ! -${bet.toLocaleString()} BC`);
+    showModal("GAME 50/50", win ? `ВЫИГРЫШ! +${bet.toLocaleString()} BC` : `ПРОИГРЫШ! -${bet.toLocaleString()} BC`);
 }
 
 async function playRoulette() {
-    const betStr = prompt("Ставка на X3:");
-    const bet = parseInt(betStr);
+    const bet = parseInt(prompt("Ставка на ROULLETE (X3):"));
     if (!bet || bet > u.balance) return;
     const win = Math.random() < 0.3;
-    await updateData(win ? bet * 2 : -bet, 70);
-    showModal("РУЛЕТКА", win ? `ВЫИГРЫШ! +${(bet*2).toLocaleString()} BC` : `ПРОИГРЫШ! -${bet.toLocaleString()} BC`);
+    await updateData(win ? bet * 2 : -bet, 100);
+    showModal("ROULETTE", win ? `ВЫИГРЫШ! +${(bet*2).toLocaleString()} BC` : `ПРОИГРЫШ! -${bet.toLocaleString()} BC`);
 }
 
 function startHL() {
     const bet = parseInt(document.getElementById('hl-bet').value);
-    if (!bet || bet > u.balance) return alert("Недостаточно BC");
+    if (!bet || bet > u.balance) return alert("Мало BC");
     hlBase = Math.floor(Math.random() * 100);
     document.getElementById('hl-num').innerText = hlBase;
     document.getElementById('hl-setup').classList.add('hidden');
@@ -265,7 +259,7 @@ async function playHL(choice) {
     const next = Math.floor(Math.random() * 100);
     document.getElementById('hl-num').innerText = next;
     const isWin = (choice === 'high' && next >= hlBase) || (choice === 'low' && next <= hlBase);
-    await updateData(isWin ? bet : -bet, 100);
+    await updateData(isWin ? bet : -bet, 150);
     setTimeout(() => {
         showModal("H/L SYSTEM", isWin ? `ВЫИГРЫШ! +${bet.toLocaleString()} BC` : `ПРОИГРЫШ! -${bet.toLocaleString()} BC`);
         document.getElementById('hl-setup').classList.remove('hidden');
@@ -273,22 +267,20 @@ async function playHL(choice) {
     }, 600);
 }
 
-// --- LEADERBOARD ---
-async function loadLeaderboard() {
-    const { data } = await sb.from('profiles').select('username, balance, xp').order('balance', { ascending: false }).limit(10);
-    if(!data) return;
-    document.getElementById('leaderboard-list').innerHTML = data.map((p, i) => `
-        <div class="glass p-4 rounded-2xl flex justify-between items-center border-l-4 ${i < 3 ? 'border-yellow-500' : 'border-gray-800'}">
-            <div class="flex items-center gap-3">
-                <span class="font-black italic text-xl opacity-20">#${i+1}</span>
-                <div><p class="font-bold text-sm uppercase">${p.username}</p><p class="text-[9px] text-gray-500 uppercase">LVL ${Math.floor(p.xp/1000)}</p></div>
-            </div>
-            <p class="font-black text-red-600 text-sm italic">${p.balance.toLocaleString()} BC</p>
-        </div>
-    `).join('');
+// --- BANK & TRANSFERS ---
+async function bankAction(type) {
+    const amt = parseInt(prompt("Введите сумму:"));
+    if (!amt || amt <= 0) return;
+    if (type === 'dep') {
+        if (u.balance < amt) return alert("Мало наличных");
+        await sb.from('profiles').update({ balance: u.balance - amt, bank_balance: u.bank_balance + amt }).eq('username', u.username);
+    } else {
+        if (u.bank_balance < amt) return alert("Мало в банке");
+        await sb.from('profiles').update({ balance: u.balance + amt, bank_balance: u.bank_balance - amt }).eq('username', u.username);
+    }
+    await refreshData();
 }
 
-// --- BANKING ---
 function openTransferModal() {
     document.getElementById('transfer-modal').classList.remove('hidden');
     document.getElementById('tr-step-1').classList.remove('hidden');
@@ -297,19 +289,19 @@ function openTransferModal() {
 
 async function checkTransferTarget() {
     const bid = document.getElementById('target-bank-id').value.trim().toUpperCase();
-    if(bid === u.bank_id) return alert("Нельзя перевести самому себе");
+    if(bid === u.bank_id) return alert("Свой ID нельзя");
     const { data } = await sb.from('profiles').select('*').eq('bank_id', bid).maybeSingle();
     if(data) {
         tempTarget = data;
         document.getElementById('tr-target-nick').innerText = data.username;
         document.getElementById('tr-step-1').classList.add('hidden');
         document.getElementById('tr-step-2').classList.remove('hidden');
-    } else alert("Пользователь с таким ID не найден");
+    } else alert("ID не найден");
 }
 
 async function executeTransfer() {
     const amt = parseInt(document.getElementById('transfer-amount').value);
-    if(!amt || amt < 100 || u.bank_balance < amt) return alert("Ошибка суммы или недостаточно средств в банке");
+    if(!amt || amt < 100 || u.bank_balance < amt) return alert("Ошибка суммы");
     
     await sb.from('profiles').update({ bank_balance: u.bank_balance - amt }).eq('username', u.username);
     const { data: target } = await sb.from('profiles').select('bank_balance').eq('username', tempTarget.username).single();
@@ -317,98 +309,74 @@ async function executeTransfer() {
     await sb.from('transfers').insert([{ from_user: u.username, to_user: tempTarget.username, amount: amt }]);
     
     document.getElementById('transfer-modal').classList.add('hidden');
-    alert("Перевод успешно отправлен!");
-    const { data: me } = await sb.from('profiles').select('*').eq('username', u.username).single();
-    u = me; updateUI();
+    showModal("BANK", `Перевод ${amt} BC успешно отправлен!`);
+    await refreshData();
 }
 
-async function bankAction(type) {
-    const amt = parseInt(prompt("Сумма операции:"));
-    if (!amt || amt <= 0) return;
-    if (type === 'dep') {
-        if (u.balance < amt) return alert("Недостаточно наличных");
-        await sb.from('profiles').update({ balance: u.balance - amt, bank_balance: u.bank_balance + amt }).eq('username', u.username);
-    } else {
-        if (u.bank_balance < amt) return alert("Недостаточно средств в банке");
-        await sb.from('profiles').update({ balance: u.balance + amt, bank_balance: u.bank_balance - amt }).eq('username', u.username);
-    }
-    const { data } = await sb.from('profiles').select('*').eq('username', u.username).single();
-    u = data; updateUI();
+// --- TOP & CASES ---
+async function loadLeaderboard() {
+    const { data } = await sb.from('profiles').select('username, balance, xp').order('balance', { ascending: false }).limit(10);
+    document.getElementById('leaderboard-list').innerHTML = data.map((p, i) => `
+        <div class="glass p-4 rounded-2xl flex justify-between items-center border-l-4 ${i<3?'border-red-600':'border-white/5'}">
+            <div class="flex items-center gap-3">
+                <span class="font-black italic opacity-20 text-xl">#${i+1}</span>
+                <p class="font-bold text-sm uppercase">${p.username}</p>
+            </div>
+            <p class="font-black text-red-600 text-sm italic">${p.balance.toLocaleString()} BC</p>
+        </div>
+    `).join('');
 }
 
-// --- STORE ---
 function renderCases() {
     document.getElementById('case-list').innerHTML = CASES.map(c => `
         <div class="glass p-5 rounded-[30px] flex justify-between items-center border-l-4" style="border-color: ${c.color}">
-            <div><p class="font-black italic text-sm uppercase">${c.name} КЕЙС</p><p class="text-[10px] text-gray-500 font-bold">${c.price.toLocaleString()} BC</p></div>
-            <button onclick="openCase('${c.id}')" class="red-btn px-6 py-3 rounded-xl text-[10px]">ОТКРЫТЬ</button>
+            <div><p class="font-black italic text-sm uppercase">${c.name}</p><p class="text-[9px] text-gray-500 font-bold">${c.price.toLocaleString()} BC</p></div>
+            <button onclick="openCase('${c.id}')" class="red-btn px-6 py-3 rounded-xl text-[10px]">OPEN</button>
         </div>
     `).join('');
 }
 
 async function openCase(id) {
     const c = CASES.find(x => x.id === id);
-    if (u.balance < c.price) return alert("Недостаточно BC");
+    if (u.balance < c.price) return alert("Мало BC");
     const isWin = Math.random() < c.winRate;
     const win = isWin ? Math.floor(Math.random() * (c.maxB - c.minB)) + c.minB : Math.floor(c.price * 0.4);
     await updateData(win - c.price, 200);
-    // БЕЗ СМАЙЛИКОВ, КАК ПРОСИЛИ
-    showModal("МАГАЗИН", `РЕЗУЛЬТАТ: ${win.toLocaleString()} BC. ${isWin ? 'ОКУП' : 'МИНУС'}`);
+    showModal("SHOP", `РЕЗУЛЬТАТ: ${win.toLocaleString()} BC. ${isWin ? 'ОКУП!' : 'МИНУС'}`);
 }
 
-// --- ADMIN COMMANDS ---
+// --- ADMIN & REALTIME ---
 async function executeAdminCommand() {
-    if (!u.is_admin) return alert("НЕТ ДОСТУПА");
+    if (!u.is_admin) return;
     const val = document.getElementById('admin-input').value;
-    const cmd = val.split(' ');
-    const action = cmd[0];
-    const target = cmd[1] ? cmd[1].toUpperCase() : "";
-    const amount = parseInt(cmd[2]);
+    const args = val.split(' ');
+    const cmd = args[0];
+    const target = args[1]?.toUpperCase();
+    const sum = parseInt(args[2]);
 
-    if (action === '/setbc') {
-        await sb.from('profiles').update({ balance: amount }).eq('username', target);
-        alert("Баланс изменен для " + target);
-    } 
-    else if (action === '/setxp') {
-        await sb.from('profiles').update({ xp: amount }).eq('username', target);
-        alert("XP изменен для " + target);
-    }
-    else if (action === '/ban') {
-        const reason = cmd.slice(2).join(' ') || "Нарушение правил";
-        await sb.from('profiles').update({ banned: true, ban_reason: reason }).eq('username', target);
-        alert(target + " ЗАБАНЕН");
-    }
-    else if (action === '/unban') {
-        await sb.from('profiles').update({ banned: false }).eq('username', target);
-        alert(target + " РАЗБАНЕН");
-    }
-    else if (action === '/globalalert') {
-        const text = cmd.slice(1).join(' ');
-        await sb.from('broadcasts').insert([{ message: text, sender: 'SYSTEM' }]);
-        alert("Оповещение отправлено");
-    }
+    if (cmd === '/setbc') await sb.from('profiles').update({ balance: sum }).eq('username', target);
+    else if (cmd === '/setxp') await sb.from('profiles').update({ xp: sum }).eq('username', target);
+    else if (cmd === '/ban') await sb.from('profiles').update({ banned: true, ban_reason: args.slice(2).join(' ') }).eq('username', target);
+    else if (cmd === '/unban') await sb.from('profiles').update({ banned: false }).eq('username', target);
+    else if (cmd === '/globalalert') await sb.from('broadcasts').insert([{ message: args.slice(1).join(' '), sender: u.username }]);
+    alert("Выполнено!");
 }
 
-// --- REALTIME ---
 function setupRealtime() {
     sb.channel('updates').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transfers', filter: `to_user=eq.${u.username}` }, payload => {
+        const toast = document.getElementById('transfer-toast');
         document.getElementById('tr-sender').innerText = "От: " + payload.new.from_user;
         document.getElementById('tr-amount').innerText = "+ " + payload.new.amount.toLocaleString() + " BC";
-        document.getElementById('transfer-toast').classList.add('show');
-        setTimeout(() => document.getElementById('transfer-toast').classList.remove('show'), 5000);
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 5000);
+        refreshData();
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, payload => {
-        alert("ОПОВЕЩЕНИЕ СИСТЕМЫ: " + payload.new.message);
+        alert("📢 СИСТЕМА: " + payload.new.message);
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
-        if (payload.new.username === u.username) { 
-            u = payload.new; 
-            if(u.banned) {
-                alert("ВЫ ЗАБАНЕНЫ. ПРИЧИНА: " + u.ban_reason);
-                location.reload();
-            }
-            updateUI(); 
-        }
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `username=eq.${u.username}` }, payload => {
+        if(payload.new.banned) { alert("BAN: " + payload.new.ban_reason); location.reload(); }
+        u = payload.new; updateUI();
     }).subscribe();
 }
 
