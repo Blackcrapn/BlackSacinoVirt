@@ -377,6 +377,7 @@
         let claimedLevels = [];
         let activeEvent = null;
         let eventInterval = null;
+        let eventPollInterval = null;
 
         // Обновленный CASES с изменениями для Ultra кейса
         const CASES = [
@@ -460,6 +461,9 @@
             // Загружаем активный ивент
             await loadActiveEvent();
             
+            // Запускаем polling для ивентов на случай если realtime не работает
+            startEventPolling();
+            
             // Проверка админ-прав
             if (u.is_admin) {
                 document.getElementById('n-admin').classList.remove('hidden');
@@ -471,6 +475,14 @@
             initRealtime(); 
             loadFriends();
             startQuestsTimer();
+        }
+
+        // Polling для ивентов на случай проблем с realtime
+        function startEventPolling() {
+            if (eventPollInterval) clearInterval(eventPollInterval);
+            eventPollInterval = setInterval(async () => {
+                await loadActiveEvent();
+            }, 5000); // Проверяем каждые 5 секунд
         }
 
         // === СИСТЕМА ИВЕНТОВ ===
@@ -499,8 +511,19 @@
                 return;
             }
 
-            activeEvent = data;
-            showEventIndicator();
+            // Если ивент новый или изменился
+            if (!activeEvent || activeEvent.id !== data.id) {
+                activeEvent = data;
+                showEventIndicator();
+                
+                // Показываем уведомление о начале ивента всем игрокам
+                if (activeEvent.started_by !== u.username) {
+                    showModal("НОВЫЙ ИВЕНТ!", `Администратор ${activeEvent.started_by} запустил ивент "${activeEvent.event_type}" на ${activeEvent.duration_minutes} минут!`);
+                }
+            }
+            
+            // Обновляем таймер
+            updateEventTimer();
         }
 
         function showEventIndicator() {
@@ -509,8 +532,7 @@
             document.getElementById('event-type-text').textContent = activeEvent.event_type;
             document.getElementById('event-indicator').classList.remove('hidden');
             
-            // Обновляем таймер сразу
-            updateEventTimer();
+            // Запускаем таймер
             startEventTimer();
         }
 
@@ -527,6 +549,7 @@
             
             if (eventInterval) clearInterval(eventInterval);
             eventInterval = setInterval(updateEventTimer, 1000);
+            updateEventTimer(); // Первый вызов сразу
         }
 
         function updateEventTimer() {
@@ -550,7 +573,7 @@
 
             const minutes = Math.floor(diff / 60000);
             const seconds = Math.floor((diff % 60000) / 1000);
-            const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            const timerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             document.getElementById('event-timer').textContent = timerText;
         }
 
@@ -616,18 +639,18 @@
                             localStorage.setItem('ultra_key_' + targetUsername, 'true');
                         }
                         
-                        // Отправляем системное сообщение для получателя
-                        await sb.from('interactions').insert([{
-                            from_user: u.username,
-                            to_user: targetNick,
-                            type: 'key_received',
-                            data: { case_type: caseType }
-                        }]);
-                        
                         // Отправляем глобальное уведомление
                         await sb.from('global_alerts').insert([{ 
-                            sender: 'АДМИНИСТРАТОР', 
+                            sender: 'СИСТЕМА', 
                             message: `Администратор ${u.username} выдал ключ от ${caseType === 'gold' ? 'Золотого' : 'Ultra'} кейса игроку ${targetNick}` 
+                        }]);
+                        
+                        // Отправляем прямое уведомление получателю
+                        const caseName = caseType === 'gold' ? 'Золотой кейс' : 'Black Win Ultra';
+                        await sb.from('messages').insert([{
+                            sender: 'СИСТЕМА',
+                            receiver: targetNick,
+                            text: `Администратор ${u.username} выдал вам ключ от ${caseName}!`
                         }]);
                         
                         alert(`Ключ от ${caseType === 'gold' ? 'Золотого' : 'Ultra'} кейса выдан игроку ${targetNick}`);
@@ -651,18 +674,24 @@
                         const endTime = new Date();
                         endTime.setMinutes(endTime.getMinutes() + duration);
                         
-                        await sb.from('active_events').insert([{
+                        const { data: newEvent, error: eventError } = await sb.from('active_events').insert([{
                             event_type: eventType,
                             started_by: u.username,
                             end_time: endTime.toISOString(),
                             duration_minutes: duration
-                        }]);
+                        }]).select().single();
+                        
+                        if (eventError) throw "Ошибка создания ивента: " + eventError.message;
                         
                         // Отправляем глобальное уведомление
                         await sb.from('global_alerts').insert([{ 
                             sender: 'АДМИНИСТРАТОР', 
                             message: `Администратор ${u.username} запустил ивент "${eventType}" на ${duration} минут!` 
                         }]);
+                        
+                        // Обновляем локально для администратора
+                        activeEvent = newEvent;
+                        showEventIndicator();
                         
                         alert(`Ивент "${eventType}" начат на ${duration} минут`);
                         break;
@@ -689,6 +718,12 @@
                             sender: 'АДМИНИСТРАТОР', 
                             message: `Ивент "${eventTypeToStop}" завершен администратором ${u.username}` 
                         }]);
+                        
+                        // Обновляем локально если это текущий ивент
+                        if (activeEvent && activeEvent.event_type === eventTypeToStop) {
+                            activeEvent = null;
+                            hideEventIndicator();
+                        }
                         
                         alert(`Ивент "${eventTypeToStop}" остановлен`);
                         break;
@@ -1298,6 +1333,15 @@
                     </div>
                 </div>`).join('');
             box.scrollTop = box.scrollHeight;
+            
+            // Проверяем, есть ли системные сообщения о ключах
+            data.forEach(m => {
+                if (m.sender === 'СИСТЕМА' && m.text.includes('выдал вам ключ')) {
+                    document.getElementById('key-title').innerText = 'ВЫ ПОЛУЧИЛИ КЛЮЧ!';
+                    document.getElementById('key-message').innerText = m.text;
+                    document.getElementById('key-modal').classList.remove('hidden');
+                }
+            });
         }
 
         function openFriendMenu(name) {
@@ -1436,35 +1480,32 @@
             sb.channel('global')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
                 if(activeFriend && (p.new.sender === activeFriend || p.new.receiver === activeFriend)) loadMessages();
+                
+                // Если это системное сообщение о ключе для текущего пользователя
+                if (p.new.sender === 'СИСТЕМА' && p.new.receiver === u.username && p.new.text.includes('выдал вам ключ')) {
+                    document.getElementById('key-title').innerText = 'ВЫ ПОЛУЧИЛИ КЛЮЧ!';
+                    document.getElementById('key-message').innerText = p.new.text;
+                    document.getElementById('key-modal').classList.remove('hidden');
+                    
+                    // Обновляем состояние ключей
+                    if (p.new.text.includes('Золотой кейс')) {
+                        hasGoldKey = true;
+                        localStorage.setItem('gold_key_' + u.username, 'true');
+                    } else if (p.new.text.includes('Ultra кейс') || p.new.text.includes('Black Win Ultra')) {
+                        hasUltraKey = true;
+                        localStorage.setItem('ultra_key_' + u.username, 'true');
+                    }
+                    renderCases();
+                }
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
                 const r = p.new;
                 if(r.to_user !== u.username) return;
-                
                 if(r.type === 'friend_req') {
                     if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
                         await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
                         loadFriends();
                     }
-                } else if (r.type === 'key_received') {
-                    // Показываем уведомление о получении ключа
-                    const caseType = r.data.case_type;
-                    const caseName = caseType === 'gold' ? 'Золотой кейс' : 'Black Win Ultra';
-                    
-                    document.getElementById('key-title').innerText = 'ВЫ ПОЛУЧИЛИ КЛЮЧ!';
-                    document.getElementById('key-message').innerText = `Администратор ${r.from_user} выдал вам ключ: ${caseName}`;
-                    document.getElementById('key-modal').classList.remove('hidden');
-                    
-                    // Обновляем состояние ключей
-                    if (caseType === 'gold') {
-                        hasGoldKey = true;
-                        localStorage.setItem('gold_key_' + u.username, 'true');
-                    } else if (caseType === 'ultra') {
-                        hasUltraKey = true;
-                        localStorage.setItem('ultra_key_' + u.username, 'true');
-                    }
-                    
-                    renderCases();
                 }
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_alerts' }, p => {
