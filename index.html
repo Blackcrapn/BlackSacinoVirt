@@ -81,25 +81,52 @@
         }
         
         /* Индикатор ивента в хедере */
-        #event-indicator {
-            position: absolute;
-            top: 70px;
-            left: 20px;
-            background: linear-gradient(90deg, rgba(255,0,0,0.2), rgba(255,100,0,0.2));
-            border: 1px solid rgba(255,0,0,0.3);
-            border-radius: 10px;
-            padding: 5px 10px;
-            font-size: 10px;
-            font-weight: bold;
-            z-index: 40;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4); }
-            70% { box-shadow: 0 0 0 5px rgba(255, 0, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
-        }
+#event-indicator {
+    position: fixed; /* Используем fixed вместо absolute для фиксированного положения */
+    top: 80px; /* Немного ниже от верхнего края */
+    left: 15px; /* В левой стороне экрана */
+    background: linear-gradient(90deg, rgba(255, 0, 0, 0.9), rgba(255, 50, 0, 0.9)); /* Более яркий градиент */
+    border: 2px solid rgba(255, 0, 0, 0.6); /* Более толстая граница */
+    border-radius: 15px; /* Больше скругление */
+    padding: 10px 15px; /* Больше отступов */
+    font-size: 12px; /* Увеличили размер шрифта */
+    font-weight: 900; /* Жирный шрифт */
+    z-index: 1000; /* Поверх всех элементов */
+    animation: pulse 1.5s infinite; /* Более быстрая анимация */
+    backdrop-filter: blur(5px); /* Размытие фона для лучшей читаемости */
+    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.4); /* Тень для выделения */
+    min-width: 150px; /* Минимальная ширина */
+    text-align: center; /* Центрирование текста */
+    color: white; /* Белый текст */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); /* Тень текста */
+    letter-spacing: 0.5px; /* Отступ между буквами */
+}
+
+/* Для мобильных устройств - адаптивное расположение */
+@media (max-width: 768px) {
+    #event-indicator {
+        top: 70px;
+        left: 10px;
+        font-size: 11px;
+        padding: 8px 12px;
+        min-width: 130px;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+        transform: scale(1.05);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+        transform: scale(1);
+    }
+}
     </style>
 </head>
 <body class="pb-28">
