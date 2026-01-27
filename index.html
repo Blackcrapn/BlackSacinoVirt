@@ -62,6 +62,23 @@
             font-weight: bold; transition: all 0.2s;
         }
         .quick-bet-btn:active { transform: scale(0.95); }
+        
+        /* Стили для заданий */
+        .quest-item {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .quest-progress {
+            width: 100%; height: 6px; background: rgba(255,255,255,0.1);
+            border-radius: 3px; overflow: hidden; margin: 8px 0;
+        }
+        .quest-progress-bar {
+            height: 100%; background: linear-gradient(90deg, #ff0000, #ff5555);
+            transition: width 0.3s;
+        }
     </style>
 </head>
 <body class="pb-28">
@@ -156,6 +173,33 @@
         </div>
     </div>
 
+    <!-- Модальное окно заданий -->
+    <div id="quests-modal" class="game-modal-bg hidden">
+        <div class="game-modal">
+            <button onclick="closeQuestsModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
+            <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">BLACK PASS ЗАДАНИЯ</h2>
+            
+            <div id="quests-timer" class="text-center text-gray-400 text-sm mb-4">
+                Следующий сброс: <span id="reset-timer">--:--:--</span>
+            </div>
+            
+            <div id="quests-list" class="space-y-3 mb-6 max-h-96 overflow-y-auto pr-2">
+                <!-- Задания будут загружаться здесь -->
+            </div>
+            
+            <button onclick="closeQuestsModal()" class="red-btn w-full py-4 rounded-2xl">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно ключа -->
+    <div id="key-modal" class="fixed inset-0 z-[600] bg-black/98 flex items-center justify-center p-6 hidden">
+        <div class="glass p-8 rounded-[40px] w-full max-w-sm text-center border-2 border-yellow-500">
+            <h2 id="key-title" class="font-black text-2xl mb-4 text-yellow-500 italic">КЛЮЧ ОТ КЕЙСА!</h2>
+            <p id="key-message" class="text-gray-300 mb-8 text-sm"></p>
+            <button onclick="document.getElementById('key-modal').classList.add('hidden')" class="red-btn w-full py-4 rounded-2xl">ПОНЯТНО</button>
+        </div>
+    </div>
+
     <div id="lvl22-instruction" class="fixed inset-0 z-[600] bg-black/98 flex items-center justify-center p-6 hidden">
         <div class="glass p-8 rounded-[40px] w-full max-w-sm text-center border-2 border-yellow-500">
             <h2 class="font-black text-2xl mb-4 text-yellow-500 italic">ЗОЛОТОЙ КЛЮЧ!</h2>
@@ -209,6 +253,7 @@
                     <div id="bp-progress" class="bg-red-600 h-full transition-all duration-500" style="width: 0%"></div>
                 </div>
                 <button id="bp-claim-btn" onclick="claimPassReward()" class="w-full bg-white/5 border border-white/10 py-3 rounded-2xl text-[10px] font-black uppercase opacity-50 cursor-not-allowed">Забрать награду</button>
+                <button onclick="openQuestsModal()" class="w-full red-btn py-3 rounded-2xl text-[10px] font-black uppercase mt-4">ЗАДАНИЯ</button>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -292,12 +337,27 @@
 
         let u = null, activeFriend = null, hlBase = 0;
         let hasGoldKey = false;
+        let hasUltraKey = false;
+        let questsData = null;
+        let claimedLevels = [];
 
+        // Обновленный CASES с изменениями для Ultra кейса
         const CASES = [
             { id: 'bronze', name: 'Бронзовый кейс', price: 15000, color: 'orange-800', minB: 1000, maxB: 20000, winRate: 0.35 },
             { id: 'silver', name: 'Серебряный кейс', price: 75000, color: 'slate-400', minB: 5000, maxB: 90000, winRate: 0.3 },
             { id: 'gold', name: 'Золотой кейс', price: 200000, color: 'yellow-500', minB: 20000, maxB: 300000, winRate: 0.25 },
-            { id: 'black', name: 'Black Win Ultra', price: 500000, color: 'white', minB: 50000, maxB: 1000000, winRate: 0.2 }
+            { id: 'black', name: 'Black Win Ultra', price: 500000, color: 'white', minB: 300000, maxB: 5000000, winRate: 0.2, minXP: 2000, maxXP: 5000 }
+        ];
+
+        // Определение заданий
+        const QUESTS = [
+            { id: 'win_roulette', name: 'Выиграть в Рулетку x3', description: 'Выиграть 100.000BC в Рулетке x3', required: 100000, reward: 1000, type: 'win_roulette' },
+            { id: 'add_friend', name: 'Найти друга', description: 'Добавить друга в друзья', required: 1, reward: 5000, type: 'add_friend' },
+            { id: 'deposit_bank', name: 'Вклад в банк', description: 'Положить на банковский счет 100.000BC', required: 100000, reward: 1000, type: 'deposit_bank' },
+            { id: 'win_binary', name: 'Победить в 50/50', description: 'Выиграть 50.000BC в Удаче 50/50', required: 50000, reward: 800, type: 'win_binary' },
+            { id: 'open_cases', name: 'Открыть кейсы', description: 'Открыть 5 любых кейсов', required: 5, reward: 1500, type: 'open_cases' },
+            { id: 'reach_level_15', name: 'Достичь уровня', description: 'Достигнуть 15 уровня в Black Pass', required: 15, reward: 2000, type: 'reach_level' },
+            { id: 'play_highlow', name: 'Сыграть в High/Low', description: 'Сыграть 20 раз в High/Low', required: 20, reward: 1200, type: 'play_highlow' }
         ];
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -349,9 +409,16 @@
             }
         }
 
-        function startSession() {
+        async function startSession() {
             document.getElementById('auth-screen').classList.add('hidden');
             hasGoldKey = localStorage.getItem('gold_key_' + u.username) === 'true';
+            hasUltraKey = localStorage.getItem('ultra_key_' + u.username) === 'true';
+            
+            // Загружаем полученные уровни из Supabase
+            await loadClaimedLevels();
+            
+            // Загружаем квесты
+            await loadQuests();
             
             // Проверка админ-прав
             if (u.is_admin) {
@@ -363,6 +430,118 @@
             renderCases(); 
             initRealtime(); 
             loadFriends();
+            startQuestsTimer();
+        }
+
+        async function loadClaimedLevels() {
+            const { data, error } = await sb
+                .from('claimed_levels')
+                .select('level')
+                .eq('username', u.username);
+            
+            if (data) {
+                claimedLevels = data.map(item => item.level);
+            }
+        }
+
+        async function saveClaimedLevel(level) {
+            const { data, error } = await sb
+                .from('claimed_levels')
+                .insert([{ username: u.username, level: level }]);
+            
+            if (!error) {
+                claimedLevels.push(level);
+            }
+        }
+
+        async function loadQuests() {
+            const { data, error } = await sb
+                .from('quests')
+                .select('*')
+                .eq('username', u.username);
+            
+            if (error || !data || data.length === 0) {
+                // Создаем новые квесты
+                const questsToInsert = QUESTS.map(quest => ({
+                    username: u.username,
+                    quest_id: quest.id,
+                    progress: 0,
+                    completed: false,
+                    last_reset: new Date().toISOString()
+                }));
+                
+                const { data: newQuests, error: insertError } = await sb
+                    .from('quests')
+                    .insert(questsToInsert)
+                    .select();
+                
+                if (!insertError) {
+                    questsData = newQuests;
+                }
+            } else {
+                questsData = data;
+                
+                // Проверяем сброс квестов (24 часа)
+                const now = new Date();
+                const lastReset = new Date(data[0].last_reset);
+                const hoursDiff = (now - lastReset) / (1000 * 60 * 60);
+                
+                if (hoursDiff >= 24) {
+                    // Сбрасываем квесты
+                    await resetQuests();
+                }
+            }
+        }
+
+        async function resetQuests() {
+            const updates = questsData.map(quest => ({
+                id: quest.id,
+                progress: 0,
+                completed: false,
+                last_reset: new Date().toISOString()
+            }));
+            
+            for (const update of updates) {
+                await sb
+                    .from('quests')
+                    .update({ 
+                        progress: update.progress, 
+                        completed: update.completed,
+                        last_reset: update.last_reset 
+                    })
+                    .eq('id', update.id);
+            }
+            
+            await loadQuests();
+        }
+
+        async function updateQuestProgress(questId, amount) {
+            if (!questsData) return;
+            
+            const quest = questsData.find(q => q.quest_id === questId);
+            if (!quest || quest.completed) return;
+            
+            const newProgress = Math.min(quest.progress + amount, QUESTS.find(q => q.id === questId).required);
+            const completed = newProgress >= QUESTS.find(q => q.id === questId).required;
+            
+            const { error } = await sb
+                .from('quests')
+                .update({ 
+                    progress: newProgress,
+                    completed: completed 
+                })
+                .eq('id', quest.id);
+            
+            if (!error) {
+                quest.progress = newProgress;
+                quest.completed = completed;
+                
+                if (completed) {
+                    const questInfo = QUESTS.find(q => q.id === questId);
+                    await updateData(0, questInfo.reward);
+                    showModal("ЗАДАНИЕ ВЫПОЛНЕНО", `Вы получили ${questInfo.reward} XP за выполнение задания!`);
+                }
+            }
         }
 
         async function updateUI() {
@@ -380,10 +559,12 @@
             document.getElementById('bp-xp-current').innerText = xpInLevel;
             document.getElementById('bp-progress').style.width = progress + '%';
 
-            const claimedLvl = parseInt(localStorage.getItem('claimed_lvl_' + u.username) || '0');
             const claimBtn = document.getElementById('bp-claim-btn');
 
-            if (lvl > claimedLvl) {
+            // Проверяем, получен ли уже этот уровень
+            const isClaimed = claimedLevels.includes(lvl);
+            
+            if (lvl > 0 && !isClaimed) {
                 claimBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 claimBtn.classList.add('red-btn');
                 claimBtn.innerText = `Забрать награду за ${lvl} LVL`;
@@ -391,6 +572,12 @@
                 claimBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 claimBtn.classList.remove('red-btn');
                 claimBtn.innerText = "Награда получена";
+            }
+            
+            // Обновляем прогресс квеста на уровень
+            const levelQuest = QUESTS.find(q => q.id === 'reach_level_15');
+            if (levelQuest && lvl >= levelQuest.required) {
+                updateQuestProgress('reach_level_15', levelQuest.required);
             }
         }
 
@@ -475,25 +662,68 @@
 
         async function claimPassReward() {
             const lvl = Math.floor(u.xp / 1000) + 1;
-            const claimedLvl = parseInt(localStorage.getItem('claimed_lvl_' + u.username) || '0');
-            if (lvl <= claimedLvl) return;
-            let reward = 0;
-            if (lvl >= 1 && lvl <= 10) reward = Math.floor(Math.random() * (50000 - 5000)) + 5000;
-            else if (lvl >= 11 && lvl <= 19) reward = Math.floor(Math.random() * (70000 - 30000)) + 30000;
-            else if (lvl === 20 || lvl === 21) reward = 100000;
-            else if (lvl === 22) {
-                reward = 0; hasGoldKey = true;
-                localStorage.setItem('gold_key_' + u.username, 'true');
-                alert("Вы получили ЗОЛОТОЙ КЛЮЧ для кейса!");
+            
+            // Проверяем, не получен ли уже этот уровень
+            if (claimedLevels.includes(lvl)) {
+                alert("Вы уже получили награду за этот уровень!");
+                return;
             }
-            else if (lvl >= 23 && lvl <= 30) reward = Math.floor(Math.random() * (2000000 - 300000)) + 300000;
-            localStorage.setItem('claimed_lvl_' + u.username, lvl);
+            
+            let reward = 0;
+            let keyType = null;
+            
+            if (lvl >= 1 && lvl <= 10) {
+                reward = Math.floor(Math.random() * (50000 - 5000)) + 5000;
+            } else if (lvl >= 11 && lvl <= 19) {
+                reward = Math.floor(Math.random() * (70000 - 30000)) + 30000;
+            } else if (lvl === 20 || lvl === 21) {
+                reward = 100000;
+            } else if (lvl === 22) {
+                reward = 0;
+                hasGoldKey = true;
+                localStorage.setItem('gold_key_' + u.username, 'true');
+                keyType = 'gold';
+                showKeyInstruction("Золотой ключ", "Золотой кейс");
+            } else if (lvl >= 23 && lvl <= 30) {
+                reward = Math.floor(Math.random() * (2000000 - 300000)) + 300000;
+            } else if (lvl >= 31 && lvl <= 39) {
+                reward = Math.floor(Math.random() * (3000000 - 500000)) + 500000;
+            } else if (lvl === 40) {
+                reward = 0;
+                hasUltraKey = true;
+                localStorage.setItem('ultra_key_' + u.username, 'true');
+                keyType = 'ultra';
+                showKeyInstruction("Ultra ключ", "Black Win Ultra");
+            } else if (lvl >= 41 && lvl <= 49) {
+                reward = Math.floor(Math.random() * (5000000 - 300000)) + 300000;
+            } else if (lvl === 50) {
+                reward = 0;
+                hasGoldKey = true;
+                hasUltraKey = true;
+                localStorage.setItem('gold_key_' + u.username, 'true');
+                localStorage.setItem('ultra_key_' + u.username, 'true');
+                keyType = 'both';
+                showKeyInstruction("Два ключа", "Золотой кейс и Black Win Ultra");
+            }
+            
+            // Сохраняем полученный уровень в Supabase
+            await saveClaimedLevel(lvl);
+            
             if (reward > 0) {
                 await updateData(reward, 0);
                 showModal("BLACK PASS", `Вы получили награду: ${reward.toLocaleString()} BC!`);
+            } else if (keyType) {
+                updateUI();
+                renderCases();
             } else {
                 updateUI();
             }
+        }
+
+        function showKeyInstruction(keyName, caseName) {
+            document.getElementById('key-title').innerText = `ВЫ ПОЛУЧИЛИ ${keyName.toUpperCase()}!`;
+            document.getElementById('key-message').innerText = `Вы получили ключ от ${caseName}! Чтобы активировать ключ зайдите в раздел "Кейсы" и нажмите на кейс "${caseName}" и вы получите его бесплатно! (1 ключ = 1 кейс)`;
+            document.getElementById('key-modal').classList.remove('hidden');
         }
 
         function showSection(n) {
@@ -557,22 +787,23 @@
                 return;
             }
             
-            // Закрываем модальное окно
             closeBinaryModal();
             
-            // Игра 50/50
             const win = Math.random() > 0.5;
             const userWin = (choice === 'red' && win) || (choice === 'black' && !win);
             
             if (userWin) {
-                // Выигрыш x2
                 await updateData(betAmount, 50);
                 showModal("ПОБЕДА!", `+${betAmount} BC! Вы угадали цвет!`);
+                // Обновляем квест на выигрыш в 50/50
+                updateQuestProgress('win_binary', betAmount);
             } else {
-                // Проигрыш
                 await updateData(-betAmount, 20);
                 showModal("ПРОИГРЫШ", `-${betAmount} BC! Не повезло...`);
             }
+            
+            // Обновляем квест на игру в High/Low
+            updateQuestProgress('play_highlow', 1);
             
             betInput.value = '';
         }
@@ -622,10 +853,8 @@
                 return;
             }
             
-            // Закрываем модальное окно
             closeRouletteModal();
             
-            // Рулетка x3 (шансы: красное 48%, черное 48%, зеленое 4%)
             const random = Math.random() * 100;
             let result = '';
             
@@ -642,10 +871,10 @@
             
             if (choice === result) {
                 if (choice === 'green') {
-                    winMultiplier = 3; // x3 за зеленое
+                    winMultiplier = 3;
                     xpEarned = 150;
                 } else {
-                    winMultiplier = 2; // x2 за красное/черное
+                    winMultiplier = 2;
                     xpEarned = 100;
                 }
             }
@@ -654,6 +883,8 @@
                 const winAmount = betAmount * winMultiplier;
                 await updateData(winAmount, xpEarned);
                 showModal("ВЫИГРЫШ!", `+${winAmount} BC (x${winMultiplier})! Результат: ${getColorName(result)}`);
+                // Обновляем квест на выигрыш в рулетке
+                updateQuestProgress('win_roulette', winAmount);
             } else {
                 await updateData(-betAmount, 30);
                 showModal("ПРОИГРЫШ", `-${betAmount} BC! Выпало: ${getColorName(result)}`);
@@ -671,14 +902,88 @@
             }
         }
 
+        // === СИСТЕМА ЗАДАНИЙ ===
+        function openQuestsModal() {
+            if (!questsData) {
+                alert("Загрузка заданий...");
+                return;
+            }
+            
+            renderQuests();
+            document.getElementById('quests-modal').classList.remove('hidden');
+        }
+
+        function closeQuestsModal() {
+            document.getElementById('quests-modal').classList.add('hidden');
+        }
+
+        function renderQuests() {
+            const container = document.getElementById('quests-list');
+            container.innerHTML = '';
+            
+            questsData.forEach(questData => {
+                const questInfo = QUESTS.find(q => q.id === questData.quest_id);
+                if (!questInfo) return;
+                
+                const progressPercent = (questData.progress / questInfo.required) * 100;
+                const progressText = questData.completed ? 'Выполнено' : `${questData.progress}/${questInfo.required}`;
+                
+                const questHTML = `
+                    <div class="quest-item ${questData.completed ? 'border-green-500' : ''}">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-sm">${questInfo.name}</h3>
+                            <span class="text-red-600 text-[10px] font-black">${questInfo.reward} XP</span>
+                        </div>
+                        <p class="text-gray-400 text-xs mb-3">${questInfo.description}</p>
+                        <div class="quest-progress">
+                            <div class="quest-progress-bar" style="width: ${Math.min(progressPercent, 100)}%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] mt-2">
+                            <span class="${questData.completed ? 'text-green-500' : 'text-gray-400'}">${progressText}</span>
+                            <span class="${questData.completed ? 'text-green-500' : 'text-yellow-500'}">${questData.completed ? '✅ Награда получена' : 'В процессе'}</span>
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML += questHTML;
+            });
+        }
+
+        function startQuestsTimer() {
+            if (!questsData || questsData.length === 0) return;
+            
+            const lastReset = new Date(questsData[0].last_reset);
+            const nextReset = new Date(lastReset.getTime() + 24 * 60 * 60 * 1000);
+            
+            function updateTimer() {
+                const now = new Date();
+                const diff = nextReset - now;
+                
+                if (diff <= 0) {
+                    document.getElementById('reset-timer').textContent = 'Сброс...';
+                    resetQuests();
+                    return;
+                }
+                
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                document.getElementById('reset-timer').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                setTimeout(updateTimer, 1000);
+            }
+            
+            updateTimer();
+        }
+
         // === СТАРЫЕ ФУНКЦИИ (ОСТАВЛЕНЫ ДЛЯ СОВМЕСТИМОСТИ) ===
         async function playBinary() {
-            // Оставляем старую функцию для обратной совместимости
             openBinaryModal();
         }
 
         async function playRoulette() {
-            // Оставляем старую функцию для обратной совместимости
             openRouletteModal();
         }
 
@@ -700,6 +1005,14 @@
             document.getElementById('hl-num').innerText = '?';
             document.getElementById('hl-setup').classList.remove('hidden');
             document.getElementById('hl-action').classList.add('hidden');
+            
+            // Обновляем квест на игру в High/Low
+            updateQuestProgress('play_highlow', 1);
+            
+            // Обновляем квест на выигрыш в High/Low
+            if (win) {
+                updateQuestProgress('win_highlow', bet);
+            }
         }
 
         async function bankAction(type) {
@@ -710,6 +1023,8 @@
             if(type === 'dep') {
                 if(amt > u.balance) return alert("Мало на руках");
                 nB -= amt; nBK += amt;
+                // Обновляем квест на вклад в банк
+                updateQuestProgress('deposit_bank', amt);
             } else {
                 if(amt > u.bank_balance) return alert("Мало в банке");
                 nB += amt; nBK -= amt;
@@ -751,37 +1066,90 @@
         function closeFriendMenu() { document.getElementById('friend-menu').classList.remove('open'); activeFriend = null; }
 
         function renderCases() {
-            document.getElementById('case-list').innerHTML = CASES.map(c => `
+            document.getElementById('case-list').innerHTML = CASES.map(c => {
+                let priceText = c.price.toLocaleString() + ' BC';
+                let keyInfo = '';
+                
+                if (c.id === 'gold' && hasGoldKey) {
+                    priceText = 'БЕСПЛАТНО (КЛЮЧ)';
+                    keyInfo = 'Есть ключ';
+                } else if (c.id === 'black' && hasUltraKey) {
+                    priceText = 'БЕСПЛАТНО (КЛЮЧ)';
+                    keyInfo = 'Есть ключ';
+                }
+                
+                return `
                 <div class="glass p-5 rounded-3xl flex justify-between items-center border-l-4 border-${c.color}">
                     <div>
                         <p class="font-black italic text-xs uppercase">${c.name}</p>
-                        <p class="text-red-600 text-[10px] font-bold">${c.id === 'gold' && hasGoldKey ? 'БЕСПЛАТНО (КЛЮЧ)' : c.price.toLocaleString() + ' BC'}</p>
+                        <p class="text-red-600 text-[10px] font-bold">${priceText}</p>
+                        ${keyInfo ? `<p class="text-green-500 text-[8px] font-bold mt-1">${keyInfo}</p>` : ''}
                     </div>
                     <button onclick="openCase('${c.id}')" class="red-btn px-6 py-3 rounded-xl text-[10px]">ОТКРЫТЬ</button>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
 
         async function openCase(id) {
             const c = CASES.find(x => x.id === id);
             let finalPrice = c.price;
             let isUsingKey = false;
-            if (id === 'gold' && hasGoldKey) { finalPrice = 0; isUsingKey = true; }
+            
+            // Проверяем ключи
+            if (id === 'gold' && hasGoldKey) { 
+                finalPrice = 0; 
+                isUsingKey = true; 
+            } else if (id === 'black' && hasUltraKey) { 
+                finalPrice = 0; 
+                isUsingKey = true; 
+            }
+            
             if(u.balance < finalPrice) return alert("Мало BC");
+            
             const isWin = Math.random() < c.winRate;
-            let winB = isWin ? Math.floor(Math.random() * (c.maxB - c.price)) + c.price : Math.floor(Math.random() * (c.price * 0.6));
+            let winB = 0;
+            let winXP = 0;
+            
+            if (isWin) {
+                winB = Math.floor(Math.random() * (c.maxB - c.minB)) + c.minB;
+                // Для Ultra кейса добавляем XP
+                if (id === 'black') {
+                    winXP = Math.floor(Math.random() * (c.maxXP - c.minXP)) + c.minXP;
+                } else {
+                    winXP = 300;
+                }
+            } else {
+                winB = Math.floor(Math.random() * (c.price * 0.6));
+                winXP = 100;
+            }
+            
             if (isUsingKey) {
-                hasGoldKey = false;
-                localStorage.setItem('gold_key_' + u.username, 'false');
+                if (id === 'gold') {
+                    hasGoldKey = false;
+                    localStorage.setItem('gold_key_' + u.username, 'false');
+                } else if (id === 'black') {
+                    hasUltraKey = false;
+                    localStorage.setItem('ultra_key_' + u.username, 'false');
+                }
                 renderCases();
             }
-            await updateData(winB - finalPrice, 300);
-            showModal("КЕЙС", `Вы получили: ${winB.toLocaleString()} BC! ${isWin ? 'ОКУП!' : 'НЕ ПОВЕЗЛО'}`);
+            
+            await updateData(winB - finalPrice, winXP);
+            
+            // Обновляем квест на открытие кейсов
+            updateQuestProgress('open_cases', 1);
+            
+            showModal("КЕЙС", `Вы получили: ${winB.toLocaleString()} BC${winXP ? ' и ' + winXP + ' XP' : ''}! ${isWin ? 'ОКУП!' : 'НЕ ПОВЕЗЛО'}`);
         }
 
         async function sendFriendReq() {
             const to = document.getElementById('target-nick').value.trim().toUpperCase();
             if(!to || to === u.username) return;
             await sb.from('interactions').insert([{ from_user: u.username, to_user: to, type: 'friend_req' }]);
+            
+            // Обновляем квест на добавление друга
+            updateQuestProgress('add_friend', 1);
+            
             alert("Запрос в друзья отправлен!");
         }
 
