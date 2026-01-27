@@ -349,7 +349,7 @@
                     <p><b>/ban (ник) (причина)</b> — Заблокировать игрока</p>
                     <p><b>/unban (ник)</b> — Разблокировать игрока</p>
                     <p><b>/givekey (ник) (кейс)</b> — Выдать ключ от кейса</p>
-                    <p><b>/event (тип) (минуты)</b> — Начать ивент (x2 XP, x2 BC)</p>
+                    <p><b>/event (тип) (минуты)</b> — Начать ивент (x2XP, x2BC, x2WIN, 50BONUS)</p>
                     <p><b>/stopevent (тип)</b> — Остановить ивент</p>
                 </div>
             </div>
@@ -515,11 +515,6 @@
             if (!activeEvent || activeEvent.id !== data.id) {
                 activeEvent = data;
                 showEventIndicator();
-                
-                // Показываем уведомление о начале ивента всем игрокам
-                if (activeEvent.started_by !== u.username) {
-                    showModal("НОВЫЙ ИВЕНТ!", `Администратор ${activeEvent.started_by} запустил ивент "${activeEvent.event_type}" на ${activeEvent.duration_minutes} минут!`);
-                }
             }
             
             // Обновляем таймер
@@ -639,10 +634,10 @@
                             localStorage.setItem('ultra_key_' + targetUsername, 'true');
                         }
                         
-                        // Отправляем глобальное уведомление
+                        // Отправляем глобальное уведомление ВСЕМ игрокам
                         await sb.from('global_alerts').insert([{ 
-                            sender: 'СИСТЕМА', 
-                            message: `Администратор ${u.username} выдал ключ от ${caseType === 'gold' ? 'Золотого' : 'Ultra'} кейса игроку ${targetNick}` 
+                            sender: 'АДМИНИСТРАТОР', 
+                            message: `Администратор ${u.username} выдал ключ от ${caseType === 'gold' ? 'Золотого' : 'Ultra'} кейса игроку ${targetNick}!` 
                         }]);
                         
                         // Отправляем прямое уведомление получателю
@@ -661,21 +656,27 @@
                         const duration = parseInt(parts[2]);
                         if (!eventType || !duration) throw "Формат: /event (тип) (минуты)";
                         
-                        // Проверяем валидность типа ивента
-                        const validEvents = ['x2 XP', 'x2 BC', 'x2 WIN', '50% BONUS'];
-                        if (!validEvents.includes(eventType)) {
-                            throw "Доступные ивенты: x2 XP, x2 BC, x2 WIN, 50% BONUS";
+                        // Проверяем валидность типа ивента и преобразуем формат
+                        let validEventType = '';
+                        if (eventType === 'x2XP') validEventType = 'x2 XP';
+                        else if (eventType === 'x2BC') validEventType = 'x2 BC';
+                        else if (eventType === 'x2WIN') validEventType = 'x2 WIN';
+                        else if (eventType === '50BONUS') validEventType = '50% BONUS';
+                        else if (eventType === 'x2 XP' || eventType === 'x2 BC' || eventType === 'x2 WIN' || eventType === '50% BONUS') {
+                            validEventType = eventType;
+                        } else {
+                            throw "Доступные ивенты: x2XP, x2BC, x2WIN, 50BONUS";
                         }
                         
                         // Удаляем старый ивент того же типа, если есть
-                        await sb.from('active_events').delete().eq('event_type', eventType);
+                        await sb.from('active_events').delete().eq('event_type', validEventType);
                         
                         // Создаем новый ивент
                         const endTime = new Date();
                         endTime.setMinutes(endTime.getMinutes() + duration);
                         
                         const { data: newEvent, error: eventError } = await sb.from('active_events').insert([{
-                            event_type: eventType,
+                            event_type: validEventType,
                             started_by: u.username,
                             end_time: endTime.toISOString(),
                             duration_minutes: duration
@@ -683,22 +684,28 @@
                         
                         if (eventError) throw "Ошибка создания ивента: " + eventError.message;
                         
-                        // Отправляем глобальное уведомление
+                        // Отправляем глобальное уведомление ВСЕМ игрокам
                         await sb.from('global_alerts').insert([{ 
                             sender: 'АДМИНИСТРАТОР', 
-                            message: `Администратор ${u.username} запустил ивент "${eventType}" на ${duration} минут!` 
+                            message: `Администратор ${u.username} запустил ивент "${validEventType}" на ${duration} минут!` 
                         }]);
                         
                         // Обновляем локально для администратора
                         activeEvent = newEvent;
                         showEventIndicator();
                         
-                        alert(`Ивент "${eventType}" начат на ${duration} минут`);
+                        alert(`Ивент "${validEventType}" начат на ${duration} минут`);
                         break;
 
                     case '/stopevent':
-                        const eventTypeToStop = parts[1];
+                        let eventTypeToStop = parts[1];
                         if (!eventTypeToStop) throw "Формат: /stopevent (тип ивента)";
+                        
+                        // Преобразуем формат если нужно
+                        if (eventTypeToStop === 'x2XP') eventTypeToStop = 'x2 XP';
+                        else if (eventTypeToStop === 'x2BC') eventTypeToStop = 'x2 BC';
+                        else if (eventTypeToStop === 'x2WIN') eventTypeToStop = 'x2 WIN';
+                        else if (eventTypeToStop === '50BONUS') eventTypeToStop = '50% BONUS';
                         
                         // Удаляем ивент
                         const { data: eventData } = await sb
@@ -713,7 +720,7 @@
                         
                         await sb.from('active_events').delete().eq('event_type', eventTypeToStop);
                         
-                        // Отправляем уведомление
+                        // Отправляем уведомление ВСЕМ игрокам
                         await sb.from('global_alerts').insert([{ 
                             sender: 'АДМИНИСТРАТОР', 
                             message: `Ивент "${eventTypeToStop}" завершен администратором ${u.username}` 
