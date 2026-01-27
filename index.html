@@ -79,6 +79,27 @@
             height: 100%; background: linear-gradient(90deg, #ff0000, #ff5555);
             transition: width 0.3s;
         }
+        
+        /* Индикатор ивента в хедере */
+        #event-indicator {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            background: linear-gradient(90deg, rgba(255,0,0,0.2), rgba(255,100,0,0.2));
+            border: 1px solid rgba(255,0,0,0.3);
+            border-radius: 10px;
+            padding: 5px 10px;
+            font-size: 10px;
+            font-weight: bold;
+            z-index: 40;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4); }
+            70% { box-shadow: 0 0 0 5px rgba(255, 0, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+        }
     </style>
 </head>
 <body class="pb-28">
@@ -86,6 +107,11 @@
     <div id="global-broadcast" class="glass p-4 rounded-2xl border-l-4 border-red-600 shadow-2xl">
         <p id="broadcast-sender" class="text-[10px] font-black text-red-600 uppercase mb-1 tracking-widest">СИСТЕМА</p>
         <p id="broadcast-text" class="text-xs font-bold italic text-white"></p>
+    </div>
+
+    <!-- Индикатор активного ивента -->
+    <div id="event-indicator" class="hidden">
+        <span id="event-type-text"></span> - <span id="event-timer">00:00</span>
     </div>
 
     <div id="ban-overlay" class="fixed inset-0 z-[5000] bg-black flex items-center justify-center p-6 hidden">
@@ -233,8 +259,14 @@
     </div>
 
     <header class="p-6 flex justify-between items-center sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
-        <div><h1 class="font-black text-lg text-red-600 italic">BLACK WIN</h1><p id="ui-nick" class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">---</p></div>
-        <div class="text-right"><p id="ui-balance" class="text-xl font-black italic">0 BC</p><p class="text-[9px] text-red-600 font-black italic">XP: <span id="ui-xp-total">0</span></p></div>
+        <div>
+            <h1 class="font-black text-lg text-red-600 italic">BLACK WIN</h1>
+            <p id="ui-nick" class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">---</p>
+        </div>
+        <div class="text-right">
+            <p id="ui-balance" class="text-xl font-black italic">0 BC</p>
+            <p class="text-[9px] text-red-600 font-black italic">XP: <span id="ui-xp-total">0</span></p>
+        </div>
     </header>
 
     <main class="p-4 max-w-2xl mx-auto">
@@ -316,6 +348,9 @@
                     <p><b>/globalalert (текст)</b> — Сообщение всем игрокам</p>
                     <p><b>/ban (ник) (причина)</b> — Заблокировать игрока</p>
                     <p><b>/unban (ник)</b> — Разблокировать игрока</p>
+                    <p><b>/givekey (ник) (кейс)</b> — Выдать ключ от кейса</p>
+                    <p><b>/event (тип) (минуты)</b> — Начать ивент (x2 XP, x2 BC)</p>
+                    <p><b>/stopevent (тип)</b> — Остановить ивент</p>
                 </div>
             </div>
         </section>
@@ -340,6 +375,8 @@
         let hasUltraKey = false;
         let questsData = null;
         let claimedLevels = [];
+        let activeEvent = null;
+        let eventInterval = null;
 
         // Обновленный CASES с изменениями для Ultra кейса
         const CASES = [
@@ -420,6 +457,9 @@
             // Загружаем квесты
             await loadQuests();
             
+            // Загружаем активный ивент
+            await loadActiveEvent();
+            
             // Проверка админ-прав
             if (u.is_admin) {
                 document.getElementById('n-admin').classList.remove('hidden');
@@ -431,6 +471,228 @@
             initRealtime(); 
             loadFriends();
             startQuestsTimer();
+        }
+
+        // === СИСТЕМА ИВЕНТОВ ===
+        async function loadActiveEvent() {
+            const { data, error } = await sb
+                .from('active_events')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error || !data) {
+                activeEvent = null;
+                hideEventIndicator();
+                return;
+            }
+
+            // Проверяем, не закончился ли ивент
+            const now = new Date();
+            const endTime = new Date(data.end_time);
+            if (endTime <= now) {
+                // Ивент закончился, удаляем
+                await sb.from('active_events').delete().eq('id', data.id);
+                activeEvent = null;
+                hideEventIndicator();
+                return;
+            }
+
+            activeEvent = data;
+            showEventIndicator();
+            startEventTimer();
+        }
+
+        function showEventIndicator() {
+            if (!activeEvent) return;
+            
+            document.getElementById('event-type-text').textContent = activeEvent.event_type;
+            document.getElementById('event-indicator').classList.remove('hidden');
+            
+            // Обновляем таймер сразу
+            updateEventTimer();
+        }
+
+        function hideEventIndicator() {
+            document.getElementById('event-indicator').classList.add('hidden');
+            if (eventInterval) {
+                clearInterval(eventInterval);
+                eventInterval = null;
+            }
+        }
+
+        function startEventTimer() {
+            if (!activeEvent) return;
+            
+            if (eventInterval) clearInterval(eventInterval);
+            eventInterval = setInterval(updateEventTimer, 1000);
+            updateEventTimer(); // Первый вызов сразу
+        }
+
+        function updateEventTimer() {
+            if (!activeEvent) {
+                hideEventIndicator();
+                return;
+            }
+
+            const now = new Date();
+            const endTime = new Date(activeEvent.end_time);
+            const diff = endTime - now;
+
+            if (diff <= 0) {
+                // Ивент закончился
+                hideEventIndicator();
+                // Удаляем ивент из базы
+                sb.from('active_events').delete().eq('id', activeEvent.id);
+                activeEvent = null;
+                return;
+            }
+
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('event-timer').textContent = timerText;
+        }
+
+        // === ОБНОВЛЕННЫЕ КОМАНДЫ АДМИНИСТРАТОРА ===
+        async function executeAdminCommand() {
+            if (!u.is_admin) return alert("У вас нет прав администратора!");
+            
+            const input = document.getElementById('admin-input');
+            const fullCmd = input.value.trim();
+            if (!fullCmd) return;
+
+            const parts = fullCmd.split(' ');
+            const cmd = parts[0].toLowerCase();
+            const targetNick = parts[1] ? parts[1].toUpperCase() : null;
+            const value = parts[2];
+            const extra = parts.slice(3).join(' ');
+
+            try {
+                switch(cmd) {
+                    case '/setbc':
+                        if (!targetNick || !value) throw "Формат: /setbc (ник) (число)";
+                        await sb.from('profiles').update({ balance: parseInt(value) }).eq('username', targetNick);
+                        alert(`Баланс ${targetNick} изменен на ${value}`);
+                        break;
+
+                    case '/setxp':
+                        if (!targetNick || !value) throw "Формат: /setxp (ник) (число)";
+                        await sb.from('profiles').update({ xp: parseInt(value) }).eq('username', targetNick);
+                        alert(`XP ${targetNick} изменен на ${value}`);
+                        break;
+
+                    case '/globalalert':
+                        const msg = parts.slice(1).join(' ');
+                        if (!msg) throw "Формат: /globalalert (текст)";
+                        await sb.from('global_alerts').insert([{ sender: 'АДМИНИСТРАТОР', message: msg }]);
+                        break;
+
+                    case '/ban':
+                        const reason = parts.slice(2).join(' ') || "Нарушение правил";
+                        if (!targetNick) throw "Формат: /ban (ник) (причина)";
+                        await sb.from('profiles').update({ is_banned: true, ban_reason: reason }).eq('username', targetNick);
+                        alert(`Игрок ${targetNick} забанен`);
+                        break;
+
+                    case '/unban':
+                        if (!targetNick) throw "Формат: /unban (ник)";
+                        await sb.from('profiles').update({ is_banned: false, ban_reason: '' }).eq('username', targetNick);
+                        alert(`Игрок ${targetNick} разбанен`);
+                        break;
+
+                    case '/givekey':
+                        if (!targetNick || !value) throw "Формат: /givekey (ник) (gold/ultra)";
+                        const caseType = value.toLowerCase();
+                        if (caseType !== 'gold' && caseType !== 'ultra') {
+                            throw "Доступные ключи: gold, ultra";
+                        }
+                        
+                        // Обновляем локальное хранилище цели
+                        const targetUsername = targetNick;
+                        if (caseType === 'gold') {
+                            localStorage.setItem('gold_key_' + targetUsername, 'true');
+                        } else if (caseType === 'ultra') {
+                            localStorage.setItem('ultra_key_' + targetUsername, 'true');
+                        }
+                        
+                        // Отправляем системное сообщение
+                        await sb.from('global_alerts').insert([{ 
+                            sender: 'СИСТЕМА', 
+                            message: `Администратор ${u.username} выдал ключ от ${caseType === 'gold' ? 'Золотого' : 'Ultra'} кейса игроку ${targetNick}` 
+                        }]);
+                        
+                        alert(`Ключ от ${caseType === 'gold' ? 'Золотого' : 'Ultra'} кейса выдан игроку ${targetNick}`);
+                        break;
+
+                    case '/event':
+                        const eventType = parts[1];
+                        const duration = parseInt(parts[2]);
+                        if (!eventType || !duration) throw "Формат: /event (тип) (минуты)";
+                        
+                        // Проверяем валидность типа ивента
+                        const validEvents = ['x2 XP', 'x2 BC', 'x2 WIN', '50% BONUS'];
+                        if (!validEvents.includes(eventType)) {
+                            throw "Доступные ивенты: x2 XP, x2 BC, x2 WIN, 50% BONUS";
+                        }
+                        
+                        // Удаляем старый ивент того же типа, если есть
+                        await sb.from('active_events').delete().eq('event_type', eventType);
+                        
+                        // Создаем новый ивент
+                        const endTime = new Date();
+                        endTime.setMinutes(endTime.getMinutes() + duration);
+                        
+                        await sb.from('active_events').insert([{
+                            event_type: eventType,
+                            started_by: u.username,
+                            end_time: endTime.toISOString(),
+                            duration_minutes: duration
+                        }]);
+                        
+                        // Отправляем глобальное уведомление
+                        await sb.from('global_alerts').insert([{ 
+                            sender: 'АДМИНИСТРАТОР', 
+                            message: `Администратор ${u.username} начал ивент "${eventType}" на ${duration} минут!` 
+                        }]);
+                        
+                        alert(`Ивент "${eventType}" начат на ${duration} минут`);
+                        break;
+
+                    case '/stopevent':
+                        const eventTypeToStop = parts[1];
+                        if (!eventTypeToStop) throw "Формат: /stopevent (тип ивента)";
+                        
+                        // Удаляем ивент
+                        const { data: eventData } = await sb
+                            .from('active_events')
+                            .select('*')
+                            .eq('event_type', eventTypeToStop)
+                            .single();
+                        
+                        if (!eventData) {
+                            throw `Ивент "${eventTypeToStop}" не найден`;
+                        }
+                        
+                        await sb.from('active_events').delete().eq('event_type', eventTypeToStop);
+                        
+                        // Отправляем уведомление
+                        await sb.from('global_alerts').insert([{ 
+                            sender: 'АДМИНИСТРАТОР', 
+                            message: `Ивент "${eventTypeToStop}" завершен администратором ${u.username}` 
+                        }]);
+                        
+                        alert(`Ивент "${eventTypeToStop}" остановлен`);
+                        break;
+
+                    default:
+                        alert("Неизвестная команда");
+                }
+                input.value = '';
+            } catch (err) {
+                alert("Ошибка: " + err);
+            }
         }
 
         async function loadClaimedLevels() {
@@ -581,61 +843,6 @@
             }
         }
 
-        /* СИСТЕМА АДМИНИСТРАЦИИ */
-        async function executeAdminCommand() {
-            if (!u.is_admin) return alert("У вас нет прав администратора!");
-            
-            const input = document.getElementById('admin-input');
-            const fullCmd = input.value.trim();
-            if (!fullCmd) return;
-
-            const parts = fullCmd.split(' ');
-            const cmd = parts[0].toLowerCase();
-            const targetNick = parts[1] ? parts[1].toUpperCase() : null;
-            const value = parts[2];
-
-            try {
-                switch(cmd) {
-                    case '/setbc':
-                        if (!targetNick || !value) throw "Формат: /setbc (ник) (число)";
-                        await sb.from('profiles').update({ balance: parseInt(value) }).eq('username', targetNick);
-                        alert(`Баланс ${targetNick} изменен на ${value}`);
-                        break;
-
-                    case '/setxp':
-                        if (!targetNick || !value) throw "Формат: /setxp (ник) (число)";
-                        await sb.from('profiles').update({ xp: parseInt(value) }).eq('username', targetNick);
-                        alert(`XP ${targetNick} изменен на ${value}`);
-                        break;
-
-                    case '/globalalert':
-                        const msg = parts.slice(1).join(' ');
-                        if (!msg) throw "Формат: /globalalert (текст)";
-                        await sb.from('global_alerts').insert([{ sender: 'АДМИНИСТРАТОР', message: msg }]);
-                        break;
-
-                    case '/ban':
-                        const reason = parts.slice(2).join(' ') || "Нарушение правил";
-                        if (!targetNick) throw "Формат: /ban (ник) (причина)";
-                        await sb.from('profiles').update({ is_banned: true, ban_reason: reason }).eq('username', targetNick);
-                        alert(`Игрок ${targetNick} забанен`);
-                        break;
-
-                    case '/unban':
-                        if (!targetNick) throw "Формат: /unban (ник)";
-                        await sb.from('profiles').update({ is_banned: false, ban_reason: '' }).eq('username', targetNick);
-                        alert(`Игрок ${targetNick} разбанен`);
-                        break;
-
-                    default:
-                        alert("Неизвестная команда");
-                }
-                input.value = '';
-            } catch (err) {
-                alert("Ошибка: " + err);
-            }
-        }
-
         async function usePromo() {
             const codeInput = document.getElementById('promo-input');
             const code = codeInput.value.trim().toUpperCase();
@@ -736,10 +943,39 @@
         }
 
         async function updateData(b, x) {
-            const { data } = await sb.from('profiles').update({ balance: u.balance + b, xp: u.xp + x }).eq('username', u.username).select().single();
+            // Проверяем активный ивент для бонусов
+            let bonusMultiplier = 1;
+            if (activeEvent) {
+                if (activeEvent.event_type === 'x2 BC' && b > 0) {
+                    bonusMultiplier = 2;
+                    b = b * bonusMultiplier;
+                } else if (activeEvent.event_type === 'x2 XP' && x > 0) {
+                    bonusMultiplier = 2;
+                    x = x * bonusMultiplier;
+                } else if (activeEvent.event_type === 'x2 WIN' && b > 0) {
+                    bonusMultiplier = 2;
+                    b = b * bonusMultiplier;
+                } else if (activeEvent.event_type === '50% BONUS' && b > 0) {
+                    bonusMultiplier = 1.5;
+                    b = Math.floor(b * bonusMultiplier);
+                }
+            }
+            
+            const { data } = await sb.from('profiles').update({ 
+                balance: u.balance + b, 
+                xp: u.xp + x 
+            }).eq('username', u.username).select().single();
+            
             u = data; 
             localStorage.setItem('bw_session', JSON.stringify(u));
             updateUI();
+            
+            // Показываем бонус, если был применен
+            if (bonusMultiplier > 1 && (b !== 0 || x !== 0)) {
+                const bonusText = bonusMultiplier === 2 ? 'x2' : 'x1.5';
+                const bonusType = activeEvent.event_type;
+                showModal(`БОНУС ${bonusText}!`, `Активен ивент "${bonusType}". Ваша награда увеличена!`);
+            }
         }
 
         // === ИГРА УДАЧА 50/50 С СТАВКАМИ ===
@@ -1190,9 +1426,11 @@
         }
 
         function initRealtime() {
-            sb.channel('global').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
+            sb.channel('global')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
                 if(activeFriend && (p.new.sender === activeFriend || p.new.receiver === activeFriend)) loadMessages();
-            }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
                 const r = p.new;
                 if(r.to_user !== u.username) return;
                 if(r.type === 'friend_req') {
@@ -1213,6 +1451,22 @@
                     updateUI();
                 }
             })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'active_events' }, async p => {
+                // При создании нового ивента загружаем его
+                await loadActiveEvent();
+                
+                // Показываем уведомление о начале ивента
+                if (p.new.started_by !== u.username) {
+                    triggerBroadcast('АДМИНИСТРАТОР', `Администратор ${p.new.started_by} начал ивент "${p.new.event_type}"!`);
+                }
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'active_events' }, async p => {
+                // При удалении ивента скрываем индикатор
+                if (activeEvent && activeEvent.id === p.old.id) {
+                    activeEvent = null;
+                    hideEventIndicator();
+                }
+            })
             .subscribe();
         }
 
@@ -1221,7 +1475,10 @@
             document.getElementById('modal-desc').innerText = d;
             document.getElementById('game-modal').classList.remove('hidden');
         }
-        function closeModal() { document.getElementById('game-modal').classList.add('hidden'); }
+        
+        function closeModal() { 
+            document.getElementById('game-modal').classList.add('hidden'); 
+        }
     </script>
 </body>
 </html>
