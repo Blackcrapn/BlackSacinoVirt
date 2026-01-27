@@ -630,7 +630,7 @@
                     case '/globalalert':
                         const msg = parts.slice(1).join(' ');
                         if (!msg) throw "Формат: /globalalert (текст)";
-                        await sb.from('global_alerts').insert([{ sender: `АДМИНИСТРАТОР (${user.username})`, message: msg }]);
+                        await sb.from('global_alerts').insert([{ sender: `АДМИНИСТРАТОР`, message: msg }]);
                         break;
 
                     case '/ban':
