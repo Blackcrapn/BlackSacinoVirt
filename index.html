@@ -501,7 +501,6 @@
 
             activeEvent = data;
             showEventIndicator();
-            startEventTimer();
         }
 
         function showEventIndicator() {
@@ -512,6 +511,7 @@
             
             // Обновляем таймер сразу
             updateEventTimer();
+            startEventTimer();
         }
 
         function hideEventIndicator() {
@@ -527,7 +527,6 @@
             
             if (eventInterval) clearInterval(eventInterval);
             eventInterval = setInterval(updateEventTimer, 1000);
-            updateEventTimer(); // Первый вызов сразу
         }
 
         function updateEventTimer() {
@@ -617,9 +616,17 @@
                             localStorage.setItem('ultra_key_' + targetUsername, 'true');
                         }
                         
-                        // Отправляем системное сообщение
+                        // Отправляем системное сообщение для получателя
+                        await sb.from('interactions').insert([{
+                            from_user: u.username,
+                            to_user: targetNick,
+                            type: 'key_received',
+                            data: { case_type: caseType }
+                        }]);
+                        
+                        // Отправляем глобальное уведомление
                         await sb.from('global_alerts').insert([{ 
-                            sender: 'СИСТЕМА', 
+                            sender: 'АДМИНИСТРАТОР', 
                             message: `Администратор ${u.username} выдал ключ от ${caseType === 'gold' ? 'Золотого' : 'Ultra'} кейса игроку ${targetNick}` 
                         }]);
                         
@@ -654,7 +661,7 @@
                         // Отправляем глобальное уведомление
                         await sb.from('global_alerts').insert([{ 
                             sender: 'АДМИНИСТРАТОР', 
-                            message: `Администратор ${u.username} начал ивент "${eventType}" на ${duration} минут!` 
+                            message: `Администратор ${u.username} запустил ивент "${eventType}" на ${duration} минут!` 
                         }]);
                         
                         alert(`Ивент "${eventType}" начат на ${duration} минут`);
@@ -1433,11 +1440,31 @@
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
                 const r = p.new;
                 if(r.to_user !== u.username) return;
+                
                 if(r.type === 'friend_req') {
                     if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
                         await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
                         loadFriends();
                     }
+                } else if (r.type === 'key_received') {
+                    // Показываем уведомление о получении ключа
+                    const caseType = r.data.case_type;
+                    const caseName = caseType === 'gold' ? 'Золотой кейс' : 'Black Win Ultra';
+                    
+                    document.getElementById('key-title').innerText = 'ВЫ ПОЛУЧИЛИ КЛЮЧ!';
+                    document.getElementById('key-message').innerText = `Администратор ${r.from_user} выдал вам ключ: ${caseName}`;
+                    document.getElementById('key-modal').classList.remove('hidden');
+                    
+                    // Обновляем состояние ключей
+                    if (caseType === 'gold') {
+                        hasGoldKey = true;
+                        localStorage.setItem('gold_key_' + u.username, 'true');
+                    } else if (caseType === 'ultra') {
+                        hasUltraKey = true;
+                        localStorage.setItem('ultra_key_' + u.username, 'true');
+                    }
+                    
+                    renderCases();
                 }
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_alerts' }, p => {
@@ -1454,11 +1481,6 @@
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'active_events' }, async p => {
                 // При создании нового ивента загружаем его
                 await loadActiveEvent();
-                
-                // Показываем уведомление о начале ивента
-                if (p.new.started_by !== u.username) {
-                    triggerBroadcast('АДМИНИСТРАТОР', `Администратор ${p.new.started_by} начал ивент "${p.new.event_type}"!`);
-                }
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'active_events' }, async p => {
                 // При удалении ивента скрываем индикатор
