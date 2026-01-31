@@ -155,6 +155,47 @@
             0%, 100% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.3); }
             50% { box-shadow: 0 0 40px rgba(255, 0, 0, 0.6); }
         }
+        
+        /* Собственные модальные окна */
+        .custom-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.95); z-index: 4000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .custom-modal-content {
+            background: linear-gradient(135deg, #0f0f0f 0%, #000 100%);
+            border: 2px solid #ff0000;
+            border-radius: 30px;
+            width: 100%; max-width: 400px;
+            padding: 30px;
+            text-align: center;
+        }
+        .custom-modal-buttons {
+            display: flex; gap: 15px; margin-top: 20px;
+        }
+        .custom-modal-buttons button {
+            flex: 1; padding: 15px; border-radius: 20px;
+            font-weight: 900; text-transform: uppercase;
+        }
+        
+        /* Таблица лидеров */
+        .leaderboard-item {
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.05), rgba(0, 0, 0, 0.8));
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        /* Список рефералов */
+        .referral-item {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body class="pb-28">
@@ -192,6 +233,27 @@
         </div>
     </div>
 
+    <!-- Собственное модальное окно для подтверждения -->
+    <div id="custom-confirm-modal" class="custom-modal hidden">
+        <div class="custom-modal-content">
+            <h2 id="confirm-title" class="font-black text-xl mb-4 text-red-600 italic"></h2>
+            <p id="confirm-message" class="text-gray-400 mb-6"></p>
+            <div class="custom-modal-buttons">
+                <button onclick="customConfirm(false)" class="bg-white/10">Отмена</button>
+                <button onclick="customConfirm(true)" class="red-btn">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Собственное модальное окно для уведомлений -->
+    <div id="custom-alert-modal" class="custom-modal hidden">
+        <div class="custom-modal-content">
+            <h2 id="alert-title" class="font-black text-xl mb-4 text-red-600 italic"></h2>
+            <p id="alert-message" class="text-gray-400 mb-6"></p>
+            <button onclick="customAlertClose()" class="red-btn w-full py-4 rounded-2xl">ОК</button>
+        </div>
+    </div>
+
     <!-- Анимация открытия кейса -->
     <div id="case-opening-modal" class="case-open-animation hidden">
         <div class="case-prize-card">
@@ -207,8 +269,8 @@
         <div class="game-modal">
             <button onclick="closeBinaryModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
             <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">УДАЧА 50/50</h2>
-            <p class="text-center text-gray-400 text-sm mb-4">Шанс выигрыша: 50%</p>
-            <p class="text-center text-gray-400 text-sm mb-6">Выигрыш: x2 от ставки</p>
+            <p class="text-center text-gray-400 text-sm mb-4">Шанс выигрыша: 49.5%</p>
+            <p class="text-center text-gray-400 text-sm mb-6">Выигрыш: x1.95 от ставки</p>
             
             <input type="number" id="binary-bet-amount" placeholder="СУММА СТАВКИ" class="bet-input" min="1" :max="u?.balance || 0">
             
@@ -239,8 +301,8 @@
         <div class="game-modal">
             <button onclick="closeRouletteModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
             <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">РУЛЕТКА X3</h2>
-            <p class="text-center text-gray-400 text-sm mb-4">Шанс выигрыша: 33%</p>
-            <p class="text-center text-gray-400 text-sm mb-6">Выигрыш: x3 от ставки</p>
+            <p class="text-center text-gray-400 text-sm mb-4">Шанс выигрыша: 32.4%</p>
+            <p class="text-center text-gray-400 text-sm mb-6">Выигрыш: x2.97 от ставки</p>
             
             <input type="number" id="roulette-bet-amount" placeholder="СУММА СТАВКИ" class="bet-input" min="1" :max="u?.balance || 0">
             
@@ -298,15 +360,15 @@
             <button onclick="closeReferralModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
             <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">РЕФЕРАЛЬНАЯ СИСТЕМА</h2>
             
-            <div class="referral-box mb-6">
-                <p class="text-[10px] text-gray-500 font-bold mb-2">ВАША РЕФЕРАЛЬНАЯ ССЫЛКА:</p>
+            <div class="referral-box mb-4">
+                <p class="text-[10px] text-gray-500 font-bold mb-2">ВАШ РЕФЕРАЛЬНЫЙ КОД:</p>
                 <div class="flex gap-2">
-                    <input type="text" id="referral-link" readonly class="flex-1 p-3 rounded-xl text-[10px]" value="Загрузка...">
-                    <button onclick="copyReferralLink()" class="red-btn px-4 rounded-xl text-xs">КОПИРОВАТЬ</button>
+                    <input type="text" id="referral-code" readonly class="flex-1 p-3 rounded-xl text-center font-black text-lg" value="Загрузка...">
+                    <button onclick="copyReferralCode()" class="red-btn px-4 rounded-xl text-xs">КОПИРОВАТЬ</button>
                 </div>
             </div>
             
-            <div class="glass p-4 rounded-2xl mb-6">
+            <div class="glass p-4 rounded-2xl mb-4">
                 <div class="grid grid-cols-2 gap-4 text-center">
                     <div>
                         <p class="text-[10px] text-gray-500 mb-1">Приглашено</p>
@@ -317,6 +379,11 @@
                         <p id="referral-earned" class="font-black text-xl text-green-500">0 BC</p>
                     </div>
                 </div>
+            </div>
+            
+            <div class="mb-4">
+                <h3 class="text-[10px] font-black text-gray-500 uppercase mb-2">ВАШИ РЕФЕРАЛЫ:</h3>
+                <div id="referral-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
             </div>
             
             <div class="admin-cmd-list">
@@ -330,30 +397,30 @@
         </div>
     </div>
 
-    <!-- Модальное окно с выводом -->
-    <div id="withdraw-modal" class="game-modal-bg hidden">
+    <!-- Модальное окно пополнения -->
+    <div id="deposit-modal" class="game-modal-bg hidden">
         <div class="game-modal">
-            <button onclick="closeWithdrawModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
-            <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">ВЫВОД СРЕДСТВ</h2>
+            <button onclick="closeDepositModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
+            <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">ПОПОЛНЕНИЕ БАЛАНСА</h2>
             
-            <div class="glass p-6 rounded-2xl mb-6">
-                <p class="text-[10px] text-gray-500 mb-4">Минимальная сумма вывода: <span class="text-red-600 font-bold">50.000 BC</span></p>
-                
-                <input type="number" id="withdraw-amount" placeholder="СУММА ВЫВОДА" class="bet-input mb-4" min="50000">
-                
-                <select id="withdraw-method" class="w-full p-4 rounded-2xl bg-[#151515] border border-[#333] text-white mb-4">
-                    <option value="qiwi">QIWI Кошелек</option>
-                    <option value="card">Банковская карта</option>
-                    <option value="yoomoney">ЮMoney</option>
-                    <option value="crypto">Криптовалюта (USDT)</option>
-                </select>
-                
-                <input type="text" id="withdraw-details" placeholder="НОМЕР КОШЕЛЬКА / КАРТЫ" class="w-full p-4 rounded-2xl bg-[#151515] border border-[#333] text-white">
+            <div class="glass p-6 rounded-2xl mb-6 text-center">
+                <p class="text-gray-400 mb-4">Для пополнения баланса свяжитесь с администратором</p>
+                <a href="https://t.me/BlackWinSupport_bot" target="_blank" class="red-btn inline-block px-8 py-4 rounded-2xl text-sm font-black">
+                    @BlackWinSupport_bot
+                </a>
+                <p class="text-[8px] text-gray-500 mt-4">Нажмите на кнопку выше для перехода в Telegram</p>
             </div>
             
-            <button onclick="submitWithdraw()" class="red-btn w-full py-4 rounded-2xl">ПОДАТЬ ЗАЯВКУ</button>
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <button onclick="selectDepositAmount(10000)" class="bg-white/5 p-3 rounded-xl text-[10px]">10K</button>
+                <button onclick="selectDepositAmount(50000)" class="bg-white/5 p-3 rounded-xl text-[10px]">50K</button>
+                <button onclick="selectDepositAmount(100000)" class="bg-white/5 p-3 rounded-xl text-[10px]">100K</button>
+                <button onclick="selectDepositAmount(500000)" class="bg-white/5 p-3 rounded-xl text-[10px]">500K</button>
+                <button onclick="selectDepositAmount(1000000)" class="bg-white/5 p-3 rounded-xl text-[10px]">1M</button>
+                <button onclick="selectDepositAmount(5000000)" class="bg-white/5 p-3 rounded-xl text-[10px]">5M</button>
+            </div>
             
-            <p class="text-[8px] text-gray-500 text-center mt-4">Заявки обрабатываются в течение 24 часов</p>
+            <button onclick="closeDepositModal()" class="red-btn w-full py-4 rounded-2xl">ЗАКРЫТЬ</button>
         </div>
     </div>
 
@@ -408,7 +475,7 @@
         </div>
         <div id="chat-box" class="chat-area space-y-3 mb-4 pr-2"></div>
         <div class="flex gap-2 mb-6">
-            <input type="text" id="chat-input" placeholder="Сообщение..." class="flex-1 p-3 rounded-xl text-[10px]">
+            <input type="text" id="chat-input" placeholder="Сообщение..." class="flex-1 p-3 rounded-xl text-[10px]" maxlength="200">
             <button onclick="sendMessage()" class="red-btn px-4 rounded-xl font-bold">></button>
         </div>
         <button onclick="closeFriendMenu()" class="w-full border border-white/10 py-4 rounded-2xl text-[10px] font-black uppercase">НАЗАД</button>
@@ -419,9 +486,9 @@
         <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center">
             <h1 class="font-black text-3xl text-red-600 mb-8 italic tracking-tighter">BLACK WIN</h1>
             <div class="space-y-4">
-                <input type="text" id="auth-nick" placeholder="НИКНЕЙМ" class="w-full p-5 rounded-2xl font-bold uppercase" maxlength="12">
-                <input type="password" id="auth-pass" placeholder="ПАРОЛЬ" class="w-full p-5 rounded-2xl font-bold">
-                <input type="text" id="auth-ref" placeholder="РЕФЕРАЛЬНЫЙ КОД (необязательно)" class="w-full p-5 rounded-2xl font-bold">
+                <input type="text" id="auth-nick" placeholder="НИКНЕЙМ" class="w-full p-5 rounded-2xl font-bold uppercase" maxlength="12" autocomplete="off">
+                <input type="password" id="auth-pass" placeholder="ПАРОЛЬ" class="w-full p-5 rounded-2xl font-bold" autocomplete="current-password">
+                <input type="text" id="auth-ref" placeholder="РЕФЕРАЛЬНЫЙ КОД (необязательно)" class="w-full p-5 rounded-2xl font-bold" autocomplete="off">
                 <button onclick="smartAuth()" class="red-btn w-full py-5 rounded-2xl shadow-lg">ВХОД / РЕГИСТРАЦИЯ</button>
             </div>
         </div>
@@ -498,16 +565,18 @@
         <!-- Секция магазина -->
         <section id="s-store" class="section space-y-4">
             <h2 class="font-black text-center text-xl py-4 italic uppercase">МАГАЗИН КЕЙСОВ</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="openWithdrawModal()" class="gold-btn p-4 rounded-2xl text-center">
-                    <p class="text-[9px] font-black uppercase mb-1">ВЫВОД</p>
-                    <p class="text-[7px] text-gray-300">Получи реальные деньги!</p>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <button onclick="openDepositModal()" class="gold-btn p-4 rounded-2xl text-center">
+                    <p class="text-[9px] font-black uppercase mb-1">ПОПОЛНИТЬ</p>
+                    <p class="text-[7px] text-gray-300">Пополнить баланс</p>
                 </button>
                 <button onclick="showSection('bank')" class="vip-btn p-4 rounded-2xl text-center">
-                    <p class="text-[9px] font-black uppercase mb-1">ПОПОЛНИТЬ</p>
-                    <p class="text-[7px] text-gray-300">Пополни баланс</p>
+                    <p class="text-[9px] font-black uppercase mb-1">БАНК</p>
+                    <p class="text-[7px] text-gray-300">Депозит и снятие</p>
                 </button>
             </div>
+            
             <div id="case-list" class="space-y-3"></div>
         </section>
 
@@ -524,22 +593,18 @@
 
             <div class="glass p-6 rounded-[35px] text-center">
                 <h3 class="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-widest">Активация промокода</h3>
-                <input type="text" id="promo-input" placeholder="ПРОМОКОД" class="w-full p-4 rounded-2xl font-black uppercase mb-4 border border-red-600/20">
+                <input type="text" id="promo-input" placeholder="ПРОМОКОД" class="w-full p-4 rounded-2xl font-black uppercase mb-4 border border-red-600/20" maxlength="20">
                 <button onclick="usePromo()" class="red-btn w-full py-4 rounded-xl text-xs">АКТИВИРОВАТЬ</button>
             </div>
 
-            <!-- Система донатов -->
+            <!-- Информация о пополнении -->
             <div class="glass p-6 rounded-[35px] text-center">
                 <h3 class="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-widest">ПОПОЛНЕНИЕ БАЛАНСА</h3>
-                <div class="grid grid-cols-3 gap-2 mb-4">
-                    <button onclick="addBalance(10000)" class="bg-white/5 p-3 rounded-xl text-[10px]">10.000 BC</button>
-                    <button onclick="addBalance(50000)" class="bg-white/5 p-3 rounded-xl text-[10px]">50.000 BC</button>
-                    <button onclick="addBalance(100000)" class="bg-white/5 p-3 rounded-xl text-[10px]">100.000 BC</button>
-                    <button onclick="addBalance(500000)" class="bg-white/5 p-3 rounded-xl text-[10px]">500.000 BC</button>
-                    <button onclick="addBalance(1000000)" class="bg-white/5 p-3 rounded-xl text-[10px]">1.000.000 BC</button>
-                    <button onclick="addBalance(5000000)" class="bg-white/5 p-3 rounded-xl text-[10px]">5.000.000 BC</button>
-                </div>
-                <p class="text-[8px] text-gray-500">Для пополнения свяжитесь с администратором</p>
+                <p class="text-gray-400 mb-4">Для пополнения баланса свяжитесь с администратором в Telegram:</p>
+                <a href="https://t.me/BlackWinSupport_bot" target="_blank" class="red-btn inline-block px-6 py-3 rounded-xl text-xs font-black mb-2">
+                    @BlackWinSupport_bot
+                </a>
+                <p class="text-[8px] text-gray-500">Нажмите на кнопку выше для перехода</p>
             </div>
         </section>
 
@@ -547,14 +612,15 @@
         <section id="s-social" class="section space-y-6">
             <div class="glass p-6 rounded-[35px] space-y-4 text-center">
                 <h3 class="font-black text-[10px] text-gray-500 uppercase italic">Поиск по нику</h3>
-                <input type="text" id="target-nick" placeholder="НИКНЕЙМ" class="w-full p-4 rounded-2xl font-bold uppercase">
+                <input type="text" id="target-nick" placeholder="НИКНЕЙМ" class="w-full p-4 rounded-2xl font-bold uppercase" maxlength="12">
                 <button onclick="sendFriendReq()" class="red-btn w-full py-4 rounded-xl text-xs">ДОБАВИТЬ В ДРУЗЬЯ</button>
             </div>
             <div id="friends-list" class="space-y-2"></div>
         </section>
 
         <!-- Секция топа -->
-        <section id="s-top" class="section space-y-2">
+        <section id="s-top" class="section space-y-4">
+            <h2 class="font-black text-center text-xl py-4 italic uppercase">ТОП ИГРОКОВ</h2>
             <div id="leaderboard" class="space-y-2"></div>
         </section>
 
@@ -607,11 +673,15 @@
     </nav>
 
     <script>
+        // Инициализация Supabase
         const SB_URL = 'https://xlrzjpzcqnjdtbuuovvz.supabase.co';
-        const SB_KEY = 'sb_publishable_SOBMj961ujDu2G45dNor9g_CsjOu_JD';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhscnpqcHpjcW5qZHRidXVvdnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NDU5NzEsImV4cCI6MjA0NzIyMTk3MX0.92HmSZr6lP-km13_hGtgdOlGNs8wBv_mWfV5Qd5yHnc';
         const sb = supabase.createClient(SB_URL, SB_KEY);
 
-        let u = null, activeFriend = null, hlBase = 0;
+        // Глобальные переменные
+        let u = null;
+        let activeFriend = null;
+        let hlBase = 0;
         let hasGoldKey = false;
         let hasUltraKey = false;
         let hasVipKey = false;
@@ -622,163 +692,428 @@
         let eventPollInterval = null;
         let referralCode = '';
         let referrals = [];
+        let claimedRewards = new Set();
+        let lastClaimTime = 0;
+        let realtimeSubscription = null;
+        let confirmCallback = null;
+        let selectedDepositAmount = 0;
 
-        // Расширенный список кейсов
+        // Средние шансы для экономики
         const CASES = [
-            { id: 'starter', name: 'Стартовый', price: 5000, color: 'gray-600', minB: 100, maxB: 10000, winRate: 0.5, tag: 'new', discount: 0 },
-            { id: 'bronze', name: 'Бронзовый', price: 15000, color: 'orange-800', minB: 1000, maxB: 20000, winRate: 0.45, tag: null, discount: 0 },
-            { id: 'silver', name: 'Серебряный', price: 50000, color: 'slate-400', minB: 5000, maxB: 75000, winRate: 0.4, tag: null, discount: 10 },
-            { id: 'gold', name: 'Золотой', price: 150000, color: 'yellow-500', minB: 20000, maxB: 300000, winRate: 0.35, tag: 'limited', discount: 15 },
-            { id: 'platinum', name: 'Платиновый', price: 500000, color: 'blue-400', minB: 100000, maxB: 1000000, winRate: 0.3, tag: null, discount: 20 },
-            { id: 'diamond', name: 'Алмазный', price: 1000000, color: 'cyan-400', minB: 300000, maxB: 2000000, winRate: 0.25, tag: 'limited', discount: 25 },
-            { id: 'vip', name: 'VIP Кейс', price: 2500000, color: 'purple-600', minB: 500000, maxB: 5000000, winRate: 0.2, tag: 'vip', discount: 30, vipOnly: true },
-            { id: 'legendary', name: 'Легендарный', price: 5000000, color: 'red-600', minB: 1000000, maxB: 10000000, winRate: 0.15, tag: 'legendary', discount: 35, minLevel: 20 },
-            { id: 'black', name: 'Black Win Ultra', price: 10000000, color: 'white', minB: 2000000, maxB: 20000000, winRate: 0.1, tag: 'ultra', discount: 40, minLevel: 30, minXP: 5000 }
+            { 
+                id: 'starter', 
+                name: 'Стартовый', 
+                price: 5000, 
+                color: 'gray-600', 
+                minB: 500, 
+                maxB: 15000, 
+                winRate: 0.65, 
+                tag: 'new', 
+                discount: 0 
+            },
+            { 
+                id: 'bronze', 
+                name: 'Бронзовый', 
+                price: 15000, 
+                color: 'orange-800', 
+                minB: 2000, 
+                maxB: 30000, 
+                winRate: 0.6, 
+                tag: null, 
+                discount: 0 
+            },
+            { 
+                id: 'silver', 
+                name: 'Серебряный', 
+                price: 50000, 
+                color: 'slate-400', 
+                minB: 10000, 
+                maxB: 75000, 
+                winRate: 0.55, 
+                tag: null, 
+                discount: 10 
+            },
+            { 
+                id: 'gold', 
+                name: 'Золотой', 
+                price: 150000, 
+                color: 'yellow-500', 
+                minB: 30000, 
+                maxB: 250000, 
+                winRate: 0.5, 
+                tag: 'limited', 
+                discount: 15 
+            },
+            { 
+                id: 'platinum', 
+                name: 'Платиновый', 
+                price: 500000, 
+                color: 'blue-400', 
+                minB: 150000, 
+                maxB: 800000, 
+                winRate: 0.45, 
+                tag: null, 
+                discount: 20 
+            },
+            { 
+                id: 'diamond', 
+                name: 'Алмазный', 
+                price: 1000000, 
+                color: 'cyan-400', 
+                minB: 400000, 
+                maxB: 1500000, 
+                winRate: 0.4, 
+                tag: 'limited', 
+                discount: 25 
+            },
+            { 
+                id: 'vip', 
+                name: 'VIP Кейс', 
+                price: 2500000, 
+                color: 'purple-600', 
+                minB: 800000, 
+                maxB: 4000000, 
+                winRate: 0.35, 
+                tag: 'vip', 
+                discount: 30, 
+                vipOnly: true 
+            },
+            { 
+                id: 'legendary', 
+                name: 'Легендарный', 
+                price: 5000000, 
+                color: 'red-600', 
+                minB: 1500000, 
+                maxB: 8000000, 
+                winRate: 0.3, 
+                tag: 'legendary', 
+                discount: 35, 
+                minLevel: 20 
+            },
+            { 
+                id: 'black', 
+                name: 'Black Win Ultra', 
+                price: 10000000, 
+                color: 'white', 
+                minB: 3000000, 
+                maxB: 15000000, 
+                winRate: 0.25, 
+                tag: 'ultra', 
+                discount: 40, 
+                minLevel: 30, 
+                minXP: 5000 
+            }
         ];
 
-        // Расширенные задания
+        // Задания
         const QUESTS = [
-            { id: 'daily_login', name: 'Ежедневный вход', description: 'Зайти в игру 3 дня подряд', required: 3, reward: 5000, type: 'daily' },
-            { id: 'win_roulette', name: 'Победить в Рулетке', description: 'Выиграть 500.000BC в Рулетке x3', required: 500000, reward: 10000, type: 'win_roulette' },
-            { id: 'add_friend', name: 'Найти друга', description: 'Добавить 5 друзей', required: 5, reward: 25000, type: 'add_friend' },
-            { id: 'deposit_bank', name: 'Вклад в банк', description: 'Положить на банковский счет 1.000.000BC', required: 1000000, reward: 50000, type: 'deposit_bank' },
-            { id: 'win_binary', name: 'Победить в 50/50', description: 'Выиграть 250.000BC в Удаче 50/50', required: 250000, reward: 15000, type: 'win_binary' },
-            { id: 'open_cases', name: 'Открыть кейсы', description: 'Открыть 20 любых кейсов', required: 20, reward: 30000, type: 'open_cases' },
-            { id: 'reach_level_25', name: 'Достичь 25 уровня', description: 'Достигнуть 25 уровня в Black Pass', required: 25, reward: 50000, type: 'reach_level' },
-            { id: 'play_highlow', name: 'Сыграть в High/Low', description: 'Сыграть 50 раз в High/Low', required: 50, reward: 20000, type: 'play_highlow' },
-            { id: 'invite_friend', name: 'Пригласить друга', description: 'Пригласить друга по реферальной системе', required: 3, reward: 50000, type: 'invite_friend' },
-            { id: 'vip_status', name: 'Получить VIP', description: 'Получить VIP статус', required: 1, reward: 100000, type: 'vip_status' }
+            { 
+                id: 'daily_login', 
+                name: 'Ежедневный вход', 
+                description: 'Зайти в игру 3 дня подряд', 
+                required: 3, 
+                reward: 5000, 
+                type: 'daily' 
+            },
+            { 
+                id: 'win_roulette', 
+                name: 'Победить в Рулетке', 
+                description: 'Выиграть 500.000BC в Рулетке x3', 
+                required: 500000, 
+                reward: 10000, 
+                type: 'win_roulette' 
+            },
+            { 
+                id: 'add_friend', 
+                name: 'Найти друга', 
+                description: 'Добавить 5 друзей', 
+                required: 5, 
+                reward: 25000, 
+                type: 'add_friend' 
+            },
+            { 
+                id: 'deposit_bank', 
+                name: 'Вклад в банк', 
+                description: 'Положить на банковский счет 1.000.000BC', 
+                required: 1000000, 
+                reward: 50000, 
+                type: 'deposit_bank' 
+            },
+            { 
+                id: 'win_binary', 
+                name: 'Победить в 50/50', 
+                description: 'Выиграть 250.000BC в Удаче 50/50', 
+                required: 250000, 
+                reward: 15000, 
+                type: 'win_binary' 
+            },
+            { 
+                id: 'open_cases', 
+                name: 'Открыть кейсы', 
+                description: 'Открыть 20 любых кейсов', 
+                required: 20, 
+                reward: 30000, 
+                type: 'open_cases' 
+            },
+            { 
+                id: 'reach_level_25', 
+                name: 'Достичь 25 уровня', 
+                description: 'Достигнуть 25 уровня в Black Pass', 
+                required: 25, 
+                reward: 50000, 
+                type: 'reach_level' 
+            },
+            { 
+                id: 'play_highlow', 
+                name: 'Сыграть в High/Low', 
+                description: 'Сыграть 50 раз в High/Low', 
+                required: 50, 
+                reward: 20000, 
+                type: 'play_highlow' 
+            },
+            { 
+                id: 'invite_friend', 
+                name: 'Пригласить друга', 
+                description: 'Пригласить друга по реферальной системе', 
+                required: 3, 
+                reward: 50000, 
+                type: 'invite_friend' 
+            },
+            { 
+                id: 'vip_status', 
+                name: 'Получить VIP', 
+                description: 'Получить VIP статус', 
+                required: 1, 
+                reward: 100000, 
+                type: 'vip_status' 
+            }
         ];
 
-        window.addEventListener('DOMContentLoaded', () => {
+        // Загрузка при старте
+        window.addEventListener('DOMContentLoaded', async () => {
             const saved = localStorage.getItem('bw_session');
             if(saved) {
-                u = JSON.parse(saved);
-                startSession();
+                try {
+                    u = JSON.parse(saved);
+                    await startSession();
+                } catch(e) {
+                    console.error('Ошибка восстановления сессии:', e);
+                    localStorage.removeItem('bw_session');
+                    location.reload();
+                }
             }
         });
 
-        async function refreshUserData() {
-            if (!u) return;
-            const { data } = await sb.from('profiles').select('*').eq('username', u.username).single();
-            if (data) {
-                u = data;
-                localStorage.setItem('bw_session', JSON.stringify(u));
-                checkBanStatus();
-                updateUI();
+        // Обновление данных пользователя каждые 10 секунд
+        setInterval(async () => {
+            if (u) {
+                await refreshUserData();
             }
-        }
-        setInterval(refreshUserData, 10000);
+        }, 10000);
 
-        function checkBanStatus() {
-            if (u && u.is_banned) {
-                document.getElementById('ban-reason-text').innerText = u.ban_reason || "Не указана";
-                document.getElementById('ban-overlay').classList.remove('hidden');
-            } else {
-                document.getElementById('ban-overlay').classList.add('hidden');
-            }
+        // Функции работы с уведомлениями
+        function showCustomAlert(title, message) {
+            document.getElementById('alert-title').textContent = title;
+            document.getElementById('alert-message').textContent = message;
+            document.getElementById('custom-alert-modal').classList.remove('hidden');
         }
 
+        function customAlertClose() {
+            document.getElementById('custom-alert-modal').classList.add('hidden');
+        }
+
+        function showCustomConfirm(title, message, callback) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            confirmCallback = callback;
+            document.getElementById('custom-confirm-modal').classList.remove('hidden');
+        }
+
+        function customConfirm(result) {
+            document.getElementById('custom-confirm-modal').classList.add('hidden');
+            if (confirmCallback) {
+                confirmCallback(result);
+                confirmCallback = null;
+            }
+        }
+
+        // Авторизация
         async function smartAuth() {
             const n = document.getElementById('auth-nick').value.trim().toUpperCase();
             const p = document.getElementById('auth-pass').value.trim();
             const ref = document.getElementById('auth-ref').value.trim().toUpperCase();
             
-            if(!n || !p) return;
-            if(n.length < 3 || n.length > 12) {
-                alert("Никнейм должен быть от 3 до 12 символов");
+            if(!n || !p) {
+                showCustomAlert('ОШИБКА', 'Введите никнейм и пароль');
                 return;
             }
             
-            const { data } = await sb.from('profiles').select('*').eq('username', n).maybeSingle();
+            if(n.length < 3 || n.length > 12) {
+                showCustomAlert('ОШИБКА', "Никнейм должен быть от 3 до 12 символов");
+                return;
+            }
             
-            if(data) {
-                if(data.password === p) { 
-                    u = data; 
+            if(p.length < 4) {
+                showCustomAlert('ОШИБКА', "Пароль должен быть не менее 4 символов");
+                return;
+            }
+            
+            try {
+                const { data } = await sb.from('profiles').select('*').eq('username', n).maybeSingle();
+                
+                if(data) {
+                    if(data.password === p) { 
+                        u = data; 
+                        localStorage.setItem('bw_session', JSON.stringify(u));
+                        
+                        // Проверка реферального кода при первом входе
+                        if(ref && !u.referral_used && u.balance < 10000) {
+                            await processReferral(ref);
+                        }
+                        
+                        await startSession(); 
+                    } else {
+                        showCustomAlert('ОШИБКА', "Неверный пароль");
+                    }
+                } else {
+                    // Генерация уникального реферального кода
+                    referralCode = generateUniqueReferralCode();
+                    
+                    const newUser = {
+                        username: n, 
+                        password: p,
+                        referral_code: referralCode,
+                        referral_used: false,
+                        referred_by: ref || null,
+                        balance: 0,
+                        bank_balance: 0,
+                        xp: 0,
+                        is_admin: false,
+                        is_banned: false,
+                        ban_reason: '',
+                        vip_until: null,
+                        daily_streak: 0,
+                        last_login: new Date().toISOString(),
+                        total_wagered: 0,
+                        total_won: 0,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    // Создание пользователя
+                    const { data: nU, error } = await sb.from('profiles').insert([newUser]).select().single();
+                    
+                    if (error) throw error;
+                    
+                    u = nU; 
                     localStorage.setItem('bw_session', JSON.stringify(u));
                     
-                    // Проверка реферального кода при первом входе
-                    if(ref && !u.referral_used && u.balance < 10000) {
+                    // Начисление бонуса пригласившему
+                    if(ref) {
                         await processReferral(ref);
                     }
                     
-                    startSession(); 
+                    // Стартовый бонус
+                    await updateData(10000, 0);
+                    
+                    await startSession();
                 }
-                else alert("Неверный пароль");
-            } else {
-                // Генерация реферального кода
-                referralCode = generateReferralCode(n);
-                
-                const newUser = {
-                    username: n, 
-                    password: p,
-                    referral_code: referralCode,
-                    referral_used: false,
-                    referred_by: ref || null,
-                    balance: ref ? 10000 : 0,
-                    bank_balance: 0,
-                    xp: 0,
-                    is_admin: false,
-                    is_banned: false,
-                    ban_reason: '',
-                    vip_until: null,
-                    daily_streak: 0,
-                    last_login: new Date().toISOString()
-                };
-                
-                const { data: nU } = await sb.from('profiles').insert([newUser]).select().single();
-                u = nU; 
-                localStorage.setItem('bw_session', JSON.stringify(u));
-                
-                // Начисление бонуса пригласившему
-                if(ref) {
-                    await processReferral(ref);
-                }
-                
-                startSession();
+            } catch (error) {
+                console.error('Ошибка авторизации:', error);
+                showCustomAlert('ОШИБКА', 'Ошибка соединения с сервером');
             }
         }
 
-        function generateReferralCode(username) {
+        // Генерация уникального реферального кода
+        function generateUniqueReferralCode() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let code = username.slice(0, 3).toUpperCase();
-            for(let i = 0; i < 3; i++) {
+            let code = '';
+            for (let i = 0; i < 7; i++) {
                 code += chars.charAt(Math.floor(Math.random() * chars.length));
             }
             return code;
         }
 
+        // Обработка реферала
         async function processReferral(refCode) {
-            const { data: referrer } = await sb.from('profiles').select('*').eq('referral_code', refCode).single();
-            if(referrer) {
-                // Начисляем бонус пригласившему
-                await sb.from('profiles').update({ 
+            const { data: referrer, error } = await sb
+                .from('profiles')
+                .select('username, balance, referral_count')
+                .eq('referral_code', refCode)
+                .single();
+            
+            if (error || !referrer) {
+                return;
+            }
+            
+            // Начисляем бонус пригласившему
+            await sb.from('profiles')
+                .update({ 
                     balance: referrer.balance + 5000,
                     referral_count: (referrer.referral_count || 0) + 1 
-                }).eq('username', referrer.username);
+                })
+                .eq('username', referrer.username);
+            
+            // Отмечаем что реферал использован
+            await sb.from('profiles')
+                .update({ 
+                    referral_used: true,
+                    referred_by: referrer.username
+                })
+                .eq('username', u.username);
+            
+            // Добавляем запись в историю рефералов
+            await sb.from('referral_history').insert([{
+                referrer: referrer.username,
+                referred: u.username,
+                bonus_amount: 5000,
+                date: new Date().toISOString()
+            }]);
+            
+            // Даем бонус новому пользователю
+            await updateData(10000, 0);
+        }
+
+        // Обновление данных пользователя
+        async function refreshUserData() {
+            if (!u) return;
+            
+            try {
+                const { data, error } = await sb
+                    .from('profiles')
+                    .select('*')
+                    .eq('username', u.username)
+                    .single();
                 
-                // Отмечаем что реферал использован
-                await sb.from('profiles').update({ 
-                    referral_used: true 
-                }).eq('username', u.username);
+                if (error) throw error;
                 
-                // Добавляем запись в историю рефералов
-                await sb.from('referral_history').insert([{
-                    referrer: referrer.username,
-                    referred: u.username,
-                    bonus_amount: 5000,
-                    date: new Date().toISOString()
-                }]);
+                if (data) {
+                    u = data;
+                    localStorage.setItem('bw_session', JSON.stringify(u));
+                    await checkBanStatus();
+                    updateUI();
+                }
+            } catch (error) {
+                console.error('Ошибка обновления данных:', error);
             }
         }
 
+        // Проверка бана
+        async function checkBanStatus() {
+            if (u && u.is_banned) {
+                document.getElementById('ban-reason-text').innerText = u.ban_reason || "Не указана";
+                document.getElementById('ban-overlay').classList.remove('hidden');
+                return true;
+            } else {
+                document.getElementById('ban-overlay').classList.add('hidden');
+                return false;
+            }
+        }
+
+        // Старт сессии
         async function startSession() {
-            document.getElementById('auth-screen').classList.add('hidden');
+            if (await checkBanStatus()) return;
             
-            // Загружаем ключи
-            hasGoldKey = localStorage.getItem('gold_key_' + u.username) === 'true';
-            hasUltraKey = localStorage.getItem('ultra_key_' + u.username) === 'true';
-            hasVipKey = u.vip_until && new Date(u.vip_until) > new Date();
+            document.getElementById('auth-screen').classList.add('hidden');
             
             // Загружаем полученные уровни
             await loadClaimedLevels();
@@ -803,26 +1138,45 @@
                 document.getElementById('n-admin').classList.remove('hidden');
             }
             
-            checkBanStatus();
             updateUI(); 
             renderCases(); 
             initRealtime(); 
             loadFriends();
             startQuestsTimer();
             
-            // Показываем приветственное сообщение
+            // Инициализация claimedRewards из localStorage
+            const savedRewards = localStorage.getItem(`claimed_rewards_${u.username}`);
+            if (savedRewards) {
+                claimedRewards = new Set(JSON.parse(savedRewards));
+            }
+            
+            // Приветственное сообщение
             if(u.balance < 1000) {
                 showModal("ДОБРО ПОЖАЛОВАТЬ!", `Вы получили стартовый бонус 10.000 BC! Удачи в игре!`);
-                await updateData(10000, 0);
             }
         }
 
+        // Обновление ежедневного streak
         async function updateDailyStreak() {
-            const lastLogin = new Date(u.last_login);
+            const lastLogin = u.last_login ? new Date(u.last_login) : null;
             const today = new Date();
+            
+            if (!lastLogin) {
+                await sb.from('profiles').update({
+                    daily_streak: 1,
+                    last_login: today.toISOString()
+                }).eq('username', u.username);
+                u.daily_streak = 1;
+                u.last_login = today.toISOString();
+                return;
+            }
+            
             const diffDays = Math.floor((today - lastLogin) / (1000 * 60 * 60 * 24));
             
-            if(diffDays === 1) {
+            if(diffDays === 0) {
+                // Уже заходили сегодня
+                return;
+            } else if(diffDays === 1) {
                 // Подряд
                 const newStreak = (u.daily_streak || 0) + 1;
                 const streakBonus = Math.min(newStreak * 1000, 10000);
@@ -835,135 +1189,1274 @@
                 
                 u.daily_streak = newStreak;
                 u.balance += streakBonus;
+                u.last_login = today.toISOString();
                 localStorage.setItem('bw_session', JSON.stringify(u));
                 
                 if(newStreak % 7 === 0) {
                     showModal("ЕЖЕНЕДЕЛЬНЫЙ БОНУС", `Вы заходили ${newStreak} дней подряд! Бонус: ${streakBonus} BC`);
                 }
-            } else if(diffDays > 1) {
+            } else {
                 // Сброс
                 await sb.from('profiles').update({
                     daily_streak: 1,
                     last_login: today.toISOString()
                 }).eq('username', u.username);
+                
+                u.daily_streak = 1;
+                u.last_login = today.toISOString();
+                localStorage.setItem('bw_session', JSON.stringify(u));
             }
         }
 
+        // Загрузка реферальной статистики
         async function loadReferralStats() {
-            const { data } = await sb
-                .from('referral_history')
-                .select('*')
-                .eq('referrer', u.username);
-            
-            referrals = data || [];
-            document.getElementById('referral-count').textContent = referrals.length;
-            
-            const totalEarned = referrals.reduce((sum, ref) => sum + ref.bonus_amount, 0);
-            document.getElementById('referral-earned').textContent = totalEarned.toLocaleString() + ' BC';
-            
-            // Обновляем реферальную ссылку
-            document.getElementById('referral-link').value = `blackwin://ref=${u.referral_code}`;
+            try {
+                const { data, error } = await sb
+                    .from('referral_history')
+                    .select('*')
+                    .eq('referrer', u.username)
+                    .order('date', { ascending: false });
+                
+                if (error) throw error;
+                
+                referrals = data || [];
+                document.getElementById('referral-count').textContent = referrals.length;
+                
+                const totalEarned = referrals.reduce((sum, ref) => sum + ref.bonus_amount, 0);
+                document.getElementById('referral-earned').textContent = totalEarned.toLocaleString() + ' BC';
+                
+                // Обновляем реферальный код
+                document.getElementById('referral-code').value = u.referral_code;
+                
+                // Рендерим список рефералов
+                renderReferralList();
+            } catch (error) {
+                console.error('Ошибка загрузки рефералов:', error);
+            }
         }
 
-        function copyReferralLink() {
-            const linkInput = document.getElementById('referral-link');
-            linkInput.select();
+        // Рендер списка рефералов
+        function renderReferralList() {
+            const container = document.getElementById('referral-list');
+            if (!container) return;
+            
+            if (referrals.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4 text-xs">Вы еще никого не пригласили</p>';
+                return;
+            }
+            
+            container.innerHTML = referrals.map(ref => `
+                <div class="referral-item">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-sm">${ref.referred}</p>
+                            <p class="text-gray-500 text-xs">${new Date(ref.date).toLocaleDateString('ru-RU')}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-green-500 font-black">+${ref.bonus_amount.toLocaleString()} BC</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Копирование реферального кода
+        function copyReferralCode() {
+            const codeInput = document.getElementById('referral-code');
+            codeInput.select();
             document.execCommand('copy');
-            alert('Реферальная ссылка скопирована!');
+            showCustomAlert('УСПЕХ', 'Реферальный код скопирован!');
         }
 
+        // Открытие модального окна рефералов
         function openReferralModal() {
             document.getElementById('referral-modal').classList.remove('hidden');
         }
 
+        // Закрытие модального окна рефералов
         function closeReferralModal() {
             document.getElementById('referral-modal').classList.add('hidden');
         }
 
-        function openWithdrawModal() {
-            document.getElementById('withdraw-modal').classList.remove('hidden');
+        // Открытие модального окна пополнения
+        function openDepositModal() {
+            document.getElementById('deposit-modal').classList.remove('hidden');
         }
 
-        function closeWithdrawModal() {
-            document.getElementById('withdraw-modal').classList.add('hidden');
+        // Закрытие модального окна пополнения
+        function closeDepositModal() {
+            document.getElementById('deposit-modal').classList.add('hidden');
         }
 
-        async function submitWithdraw() {
-            const amount = parseInt(document.getElementById('withdraw-amount').value);
-            const method = document.getElementById('withdraw-method').value;
-            const details = document.getElementById('withdraw-details').value.trim();
+        // Выбор суммы пополнения
+        function selectDepositAmount(amount) {
+            selectedDepositAmount = amount;
+            showCustomAlert('ВЫБРАНА СУММА', `Выбрана сумма ${amount.toLocaleString()} BC. Свяжитесь с администратором для пополнения.`);
+        }
+
+        // Загрузка полученных уровней
+        async function loadClaimedLevels() {
+            try {
+                const { data, error } = await sb
+                    .from('claimed_levels')
+                    .select('level')
+                    .eq('username', u.username);
+                
+                if (error) throw error;
+                
+                if (data) {
+                    claimedLevels = data.map(item => item.level);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки уровней:', error);
+            }
+        }
+
+        // Сохранение полученного уровня
+        async function saveClaimedLevel(level) {
+            try {
+                const { error } = await sb
+                    .from('claimed_levels')
+                    .insert([{ username: u.username, level: level }]);
+                
+                if (!error) {
+                    claimedLevels.push(level);
+                }
+            } catch (error) {
+                console.error('Ошибка сохранения уровня:', error);
+            }
+        }
+
+        // Загрузка квестов
+        async function loadQuests() {
+            try {
+                const { data, error } = await sb
+                    .from('quests')
+                    .select('*')
+                    .eq('username', u.username);
+                
+                if (error || !data || data.length === 0) {
+                    const questsToInsert = QUESTS.map(quest => ({
+                        username: u.username,
+                        quest_id: quest.id,
+                        progress: 0,
+                        completed: false,
+                        last_reset: new Date().toISOString()
+                    }));
+                    
+                    const { data: newQuests, error: insertError } = await sb
+                        .from('quests')
+                        .insert(questsToInsert)
+                        .select();
+                    
+                    if (!insertError) {
+                        questsData = newQuests;
+                    }
+                } else {
+                    questsData = data;
+                    
+                    // Проверяем, нужно ли сбросить ежедневные квесты
+                    const now = new Date();
+                    const lastReset = new Date(data[0].last_reset);
+                    const hoursDiff = (now - lastReset) / (1000 * 60 * 60);
+                    
+                    if (hoursDiff >= 24) {
+                        await resetDailyQuests();
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки квестов:', error);
+            }
+        }
+
+        // Сброс ежедневных квестов
+        async function resetDailyQuests() {
+            try {
+                const dailyQuests = QUESTS.filter(q => q.type === 'daily');
+                
+                for (const quest of dailyQuests) {
+                    await sb
+                        .from('quests')
+                        .update({ 
+                            progress: 0,
+                            completed: false,
+                            last_reset: new Date().toISOString()
+                        })
+                        .eq('username', u.username)
+                        .eq('quest_id', quest.id);
+                }
+                
+                await loadQuests();
+            } catch (error) {
+                console.error('Ошибка сброса квестов:', error);
+            }
+        }
+
+        // Обновление прогресса квеста
+        async function updateQuestProgress(questId, amount) {
+            if (!questsData) return;
             
-            if(!amount || amount < 50000) {
-                alert("Минимальная сумма вывода: 50.000 BC");
+            try {
+                const quest = questsData.find(q => q.quest_id === questId);
+                if (!quest || quest.completed) return;
+                
+                const questInfo = QUESTS.find(q => q.id === questId);
+                if (!questInfo) return;
+                
+                const newProgress = Math.min(quest.progress + amount, questInfo.required);
+                const completed = newProgress >= questInfo.required;
+                
+                const { error } = await sb
+                    .from('quests')
+                    .update({ 
+                        progress: newProgress,
+                        completed: completed 
+                    })
+                    .eq('id', quest.id);
+                
+                if (!error) {
+                    quest.progress = newProgress;
+                    quest.completed = completed;
+                    
+                    if (completed) {
+                        await updateData(questInfo.reward, 0);
+                        showModal("ЗАДАНИЕ ВЫПОЛНЕНО", `Вы получили ${questInfo.reward} BC за выполнение задания!`);
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка обновления квеста:', error);
+            }
+        }
+
+        // Обновление UI
+        async function updateUI() {
+            if(!u) return;
+            
+            document.getElementById('ui-nick').innerText = u.username;
+            document.getElementById('ui-balance').innerText = u.balance.toLocaleString() + ' BC';
+            document.getElementById('ui-bank-balance').innerText = u.bank_balance.toLocaleString() + ' BC';
+            document.getElementById('ui-xp-total').innerText = u.xp.toLocaleString();
+
+            const lvl = Math.floor(u.xp / 1000) + 1;
+            const xpInLevel = u.xp % 1000;
+            const progress = (xpInLevel / 1000) * 100;
+
+            document.getElementById('bp-lvl').innerText = lvl;
+            document.getElementById('bp-xp-current').innerText = xpInLevel;
+            document.getElementById('bp-progress').style.width = progress + '%';
+
+            const claimBtn = document.getElementById('bp-claim-btn');
+            const now = Date.now();
+            const canClaim = (now - lastClaimTime) > 60000; // 1 минута между кликами
+            
+            if (lvl > 0 && !claimedLevels.includes(lvl) && canClaim) {
+                claimBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                claimBtn.classList.add('red-btn');
+                claimBtn.innerText = `Забрать награду за ${lvl} LVL`;
+                claimBtn.onclick = () => claimPassReward();
+            } else {
+                claimBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                claimBtn.classList.remove('red-btn');
+                claimBtn.innerText = claimedLevels.includes(lvl) ? "Награда получена" : "Подождите 1 минуту";
+                claimBtn.onclick = null;
+            }
+            
+            // Обновляем VIP статус
+            hasVipKey = u.vip_until && new Date(u.vip_until) > new Date();
+        }
+
+        // Активация промокода
+        async function usePromo() {
+            const codeInput = document.getElementById('promo-input');
+            const code = codeInput.value.trim().toUpperCase();
+            
+            if(!code) {
+                showCustomAlert('ОШИБКА', 'Введите промокод');
                 return;
             }
             
-            if(amount > u.balance) {
-                alert("Недостаточно средств на балансе");
+            const usedKey = `promo_${code}_${u.username}`;
+            if(localStorage.getItem(usedKey)) {
+                showCustomAlert('ОШИБКА', 'Вы уже использовали этот промокод!');
                 return;
             }
             
-            if(!details) {
-                alert("Введите реквизиты для вывода");
-                return;
+            try {
+                const { data, error } = await sb
+                    .from('promo_codes')
+                    .select('*')
+                    .eq('code', code)
+                    .single();
+                
+                if(error || !data) {
+                    showCustomAlert('ОШИБКА', 'Промокод не найден!');
+                    return;
+                }
+                
+                if(data.uses_left <= 0) {
+                    showCustomAlert('ОШИБКА', 'Срок действия промокода истек!');
+                    return;
+                }
+                
+                await updateData(data.reward_bc, data.reward_xp);
+                await sb.from('promo_codes')
+                    .update({ uses_left: data.uses_left - 1 })
+                    .eq('code', code);
+                
+                localStorage.setItem(usedKey, 'true');
+                codeInput.value = '';
+                showModal("ПРОМОКОД", `Активирован! Награда: ${data.reward_bc} BC и ${data.reward_xp} XP`);
+            } catch (error) {
+                console.error('Ошибка активации промокода:', error);
+                showCustomAlert('ОШИБКА', 'Ошибка активации промокода');
             }
-            
-            // Создаем заявку на вывод
-            const { data, error } = await sb.from('withdrawals').insert([{
-                username: u.username,
-                amount: amount,
-                method: method,
-                details: details,
-                status: 'pending',
-                date: new Date().toISOString()
-            }]).select().single();
-            
-            if(error) {
-                alert("Ошибка при создании заявки: " + error.message);
-                return;
-            }
-            
-            // Списываем средства
-            await updateData(-amount, 0);
-            
-            closeWithdrawModal();
-            showModal("ЗАЯВКА ПРИНЯТА", `Заявка на вывод ${amount.toLocaleString()} BC создана. Ожидайте обработки в течение 24 часов.`);
         }
 
-        function addBalance(amount) {
-            showModal("ПОПОЛНЕНИЕ БАЛАНСА", `Для пополнения на ${amount.toLocaleString()} BC свяжитесь с администратором в Telegram: @blackwin_support`);
+        // Триггер глобального уведомления
+        function triggerBroadcast(sender, text) {
+            const el = document.getElementById('global-broadcast');
+            document.getElementById('broadcast-sender').innerText = sender;
+            document.getElementById('broadcast-text').innerText = text;
+            el.classList.add('show');
+            setTimeout(() => { el.classList.remove('show'); }, 10000);
         }
 
-        // === СИСТЕМА ИВЕНТОВ ===
+        // Получение награды за уровень
+        async function claimPassReward() {
+            const now = Date.now();
+            if (now - lastClaimTime < 60000) {
+                showCustomAlert('ОШИБКА', 'Подождите 1 минуту перед следующим получением награды');
+                return;
+            }
+            
+            const lvl = Math.floor(u.xp / 1000) + 1;
+            
+            if (claimedLevels.includes(lvl)) {
+                showCustomAlert('ОШИБКА', "Вы уже получили награду за этот уровень!");
+                return;
+            }
+            
+            let reward = 0;
+            
+            // Награды за уровни
+            if (lvl <= 10) {
+                reward = lvl * 5000;
+            } else if (lvl <= 20) {
+                reward = 50000 + (lvl - 10) * 10000;
+            } else if (lvl <= 30) {
+                reward = 150000 + (lvl - 20) * 20000;
+            } else {
+                reward = 350000 + (lvl - 30) * 30000;
+            }
+            
+            // Дополнительные бонусы за особые уровни
+            if (lvl === 5) {
+                reward += 25000;
+                showCustomAlert('БОНУС', '+25.000 BC за достижение 5 уровня!');
+            } else if (lvl === 10) {
+                hasGoldKey = true;
+                localStorage.setItem('gold_key_' + u.username, 'true');
+                showKeyInstruction('Золотой ключ', 'Золотой кейс');
+            } else if (lvl === 20) {
+                reward += 100000;
+                showCustomAlert('БОНУС', '+100.000 BC за достижение 20 уровня!');
+            } else if (lvl === 30) {
+                const vipUntil = new Date();
+                vipUntil.setMonth(vipUntil.getMonth() + 1);
+                await sb.from('profiles').update({ 
+                    vip_until: vipUntil.toISOString() 
+                }).eq('username', u.username);
+                hasVipKey = true;
+                showKeyInstruction('VIP статус', 'VIP доступ на 1 месяц');
+            }
+            
+            await saveClaimedLevel(lvl);
+            lastClaimTime = now;
+            
+            if (reward > 0) {
+                await updateData(reward, 0);
+                showModal("BLACK PASS", `Вы получили награду: ${reward.toLocaleString()} BC!`);
+            }
+            
+            updateUI();
+            renderCases();
+        }
+
+        // Показ инструкции по ключу
+        function showKeyInstruction(keyName, caseName) {
+            document.getElementById('key-title').innerText = `ВЫ ПОЛУЧИЛИ ${keyName.toUpperCase()}!`;
+            document.getElementById('key-message').innerText = `Вы получили ключ от ${caseName}! Чтобы активировать ключ зайдите в раздел "Кейсы" и нажмите на кейс "${caseName}" и вы получите его бесплатно! (1 ключ = 1 кейс)`;
+            document.getElementById('key-modal').classList.remove('hidden');
+        }
+
+        // Переключение секций
+        function showSection(n) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+            document.getElementById('s-'+n).classList.add('active');
+            document.getElementById('n-'+n).classList.add('nav-active');
+            
+            if(n === 'top') loadTop();
+            if(n === 'social') loadFriends();
+        }
+
+        // Обновление данных в базе
+        async function updateData(b, x) {
+            try {
+                // Применяем бонусы от ивентов
+                let bonusMultiplier = 1;
+                if (activeEvent) {
+                    if (activeEvent.event_type === 'x2 BC' && b > 0) {
+                        bonusMultiplier = 2;
+                        b = b * bonusMultiplier;
+                    } else if (activeEvent.event_type === 'x2 XP' && x > 0) {
+                        bonusMultiplier = 2;
+                        x = x * bonusMultiplier;
+                    } else if (activeEvent.event_type === 'x2 WIN' && b > 0) {
+                        bonusMultiplier = 2;
+                        b = b * bonusMultiplier;
+                    } else if (activeEvent.event_type === '50% BONUS' && b > 0) {
+                        bonusMultiplier = 1.5;
+                        b = Math.floor(b * bonusMultiplier);
+                    }
+                }
+                
+                // Обновляем общую статистику
+                const updates = {
+                    balance: u.balance + b,
+                    xp: u.xp + x
+                };
+                
+                if (b > 0) {
+                    updates.total_won = (u.total_won || 0) + b;
+                }
+                
+                if (b < 0) {
+                    updates.total_wagered = (u.total_wagered || 0) + Math.abs(b);
+                }
+                
+                const { data, error } = await sb
+                    .from('profiles')
+                    .update(updates)
+                    .eq('username', u.username)
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                u = data; 
+                localStorage.setItem('bw_session', JSON.stringify(u));
+                updateUI();
+                
+                if (bonusMultiplier > 1 && (b !== 0 || x !== 0)) {
+                    const bonusText = bonusMultiplier === 2 ? 'x2' : 'x1.5';
+                    const bonusType = activeEvent.event_type;
+                    showModal(`БОНУС ${bonusText}!`, `Активен ивент "${bonusType}". Ваша награда увеличена!`);
+                }
+            } catch (error) {
+                console.error('Ошибка обновления данных:', error);
+                showCustomAlert('ОШИБКА', 'Ошибка обновления баланса');
+            }
+        }
+
+        // === ИГРА УДАЧА 50/50 ===
+        function openBinaryModal() {
+            document.getElementById('binary-modal').classList.remove('hidden');
+        }
+
+        function closeBinaryModal() {
+            document.getElementById('binary-modal').classList.add('hidden');
+        }
+
+        function setQuickBet(amount) {
+            const input = document.getElementById('binary-bet-amount');
+            if (typeof amount === 'number') {
+                input.value = amount;
+            } else if (amount === 'half') {
+                input.value = Math.floor(u.balance / 2);
+            } else if (amount === 'max') {
+                input.value = Math.floor(u.balance * 0.8);
+            } else if (amount === 'all') {
+                input.value = u.balance;
+            } else if (amount === 'double') {
+                input.value = parseInt(input.value) * 2 || 100;
+            } else if (amount === 'clear') {
+                input.value = '';
+            }
+        }
+
+        async function playBinaryGame(choice) {
+            const betInput = document.getElementById('binary-bet-amount');
+            let betAmount = parseInt(betInput.value);
+            
+            if (!betAmount || betAmount <= 0) {
+                showCustomAlert('ОШИБКА', "Введите корректную сумму ставки!");
+                return;
+            }
+            
+            if (betAmount > u.balance) {
+                showCustomAlert('ОШИБКА', "Недостаточно BC для ставки!");
+                return;
+            }
+            
+            if (betAmount < 100) {
+                showCustomAlert('ОШИБКА', "Минимальная ставка: 100 BC!");
+                return;
+            }
+            
+            closeBinaryModal();
+            
+            // Шанс 49.5% для казино
+            const win = Math.random() < 0.495;
+            const userWin = (choice === 'red' && win) || (choice === 'black' && !win);
+            
+            if (userWin) {
+                const winAmount = Math.floor(betAmount * 1.95);
+                await updateData(winAmount, 100);
+                showModal("ПОБЕДА!", `+${winAmount} BC! Вы угадали цвет!`);
+                updateQuestProgress('win_binary', winAmount);
+            } else {
+                await updateData(-betAmount, 20);
+                showModal("ПРОИГРЫШ", `-${betAmount} BC! Не повезло...`);
+            }
+            
+            updateQuestProgress('play_highlow', 1);
+            betInput.value = '';
+        }
+
+        // === ИГРА РУЛЕТКА X3 ===
+        function openRouletteModal() {
+            document.getElementById('roulette-modal').classList.remove('hidden');
+        }
+
+        function closeRouletteModal() {
+            document.getElementById('roulette-modal').classList.add('hidden');
+        }
+
+        function setQuickBetRoulette(amount) {
+            const input = document.getElementById('roulette-bet-amount');
+            if (typeof amount === 'number') {
+                input.value = amount;
+            } else if (amount === 'half') {
+                input.value = Math.floor(u.balance / 2);
+            } else if (amount === 'max') {
+                input.value = Math.floor(u.balance * 0.8);
+            } else if (amount === 'all') {
+                input.value = u.balance;
+            } else if (amount === 'double') {
+                input.value = parseInt(input.value) * 2 || 100;
+            } else if (amount === 'clear') {
+                input.value = '';
+            }
+        }
+
+        async function playRouletteGame(choice) {
+            const betInput = document.getElementById('roulette-bet-amount');
+            let betAmount = parseInt(betInput.value);
+            
+            if (!betAmount || betAmount <= 0) {
+                showCustomAlert('ОШИБКА', "Введите корректную сумму ставки!");
+                return;
+            }
+            
+            if (betAmount > u.balance) {
+                showCustomAlert('ОШИБКА', "Недостаточно BC для ставки!");
+                return;
+            }
+            
+            if (betAmount < 100) {
+                showCustomAlert('ОШИБКА', "Минимальная ставка: 100 BC!");
+                return;
+            }
+            
+            closeRouletteModal();
+            
+            // Вероятности: красное 48.6%, черное 48.6%, зеленое 2.8%
+            const random = Math.random() * 100;
+            let result = '';
+            
+            if (random < 48.6) {
+                result = 'red';
+            } else if (random < 97.2) {
+                result = 'black';
+            } else {
+                result = 'green';
+            }
+            
+            let winMultiplier = 0;
+            let xpEarned = 0;
+            
+            if (choice === result) {
+                if (choice === 'green') {
+                    winMultiplier = 2.97;
+                    xpEarned = 200;
+                } else {
+                    winMultiplier = 1.95;
+                    xpEarned = 100;
+                }
+            }
+            
+            if (winMultiplier > 0) {
+                const winAmount = Math.floor(betAmount * winMultiplier);
+                await updateData(winAmount, xpEarned);
+                showModal("ВЫИГРЫШ!", `+${winAmount} BC (x${winMultiplier.toFixed(2)})! Результат: ${getColorName(result)}`);
+                updateQuestProgress('win_roulette', winAmount);
+            } else {
+                await updateData(-betAmount, 30);
+                showModal("ПРОИГРЫШ", `-${betAmount} BC! Выпало: ${getColorName(result)}`);
+            }
+            
+            betInput.value = '';
+        }
+
+        function getColorName(color) {
+            switch(color) {
+                case 'red': return 'КРАСНОЕ';
+                case 'black': return 'ЧЁРНОЕ';
+                case 'green': return 'ЗЕЛЁНОЕ';
+                default: return color;
+            }
+        }
+
+        // === НОВЫЕ ИГРЫ ===
+        async function playCoinFlip() {
+            showCustomConfirm('МОНЕТКА', 'Выберите сторону монетки:', (choice) => {
+                if (choice === null) return;
+                
+                const betAmount = 1000;
+                if (betAmount > u.balance) {
+                    showCustomAlert('ОШИБКА', 'Недостаточно средств!');
+                    return;
+                }
+                
+                const userChoice = choice ? 'heads' : 'tails';
+                const result = Math.random() > 0.5 ? 'heads' : 'tails';
+                
+                if (userChoice === result) {
+                    updateData(betAmount, 80);
+                    showModal("МОНЕТКА", `ПОБЕДА! Выпал ${result === 'heads' ? 'ОРЁЛ' : 'РЕШКА'}. +${betAmount} BC!`);
+                } else {
+                    updateData(-betAmount, 20);
+                    showModal("МОНЕТКА", `ПРОИГРЫШ! Выпал ${result === 'heads' ? 'ОРЁЛ' : 'РЕШКА'}. -${betAmount} BC`);
+                }
+            });
+        }
+
+        async function playDice() {
+            showCustomConfirm('КОСТИ', 'Угадайте число от 1 до 6:', (choice) => {
+                if (choice === null) return;
+                
+                const betAmount = 1000;
+                if (betAmount > u.balance) {
+                    showCustomAlert('ОШИБКА', 'Недостаточно средств!');
+                    return;
+                }
+                
+                const userGuess = Math.floor(Math.random() * 6) + 1;
+                const diceResult = Math.floor(Math.random() * 6) + 1;
+                
+                if (userGuess === diceResult) {
+                    const winAmount = betAmount * 6;
+                    updateData(winAmount, 150);
+                    showModal("КОСТИ", `ПОБЕДА! Выпало ${diceResult}. Вы угадали! +${winAmount} BC (x6)!`);
+                } else {
+                    updateData(-betAmount, 20);
+                    showModal("КОСТИ", `ПРОИГРЫШ! Выпало ${diceResult}, вы выбрали ${userGuess}. -${betAmount} BC`);
+                }
+            });
+        }
+
+        // === СИСТЕМА ЗАДАНИЙ ===
+        function openQuestsModal() {
+            if (!questsData) {
+                showCustomAlert('ОШИБКА', "Загрузка заданий...");
+                return;
+            }
+            
+            renderQuests();
+            document.getElementById('quests-modal').classList.remove('hidden');
+        }
+
+        function closeQuestsModal() {
+            document.getElementById('quests-modal').classList.add('hidden');
+        }
+
+        function renderQuests() {
+            const container = document.getElementById('quests-list');
+            container.innerHTML = '';
+            
+            questsData.forEach(questData => {
+                const questInfo = QUESTS.find(q => q.id === questData.quest_id);
+                if (!questInfo) return;
+                
+                const progressPercent = (questData.progress / questInfo.required) * 100;
+                const progressText = questData.completed ? 'Выполнено' : `${questData.progress}/${questInfo.required}`;
+                
+                const questHTML = `
+                    <div class="quest-item ${questData.completed ? 'border-green-500' : ''}">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-sm">${questInfo.name}</h3>
+                            <span class="text-red-600 text-[10px] font-black">${questInfo.reward} BC</span>
+                        </div>
+                        <p class="text-gray-400 text-xs mb-3">${questInfo.description}</p>
+                        <div class="quest-progress">
+                            <div class="quest-progress-bar" style="width: ${Math.min(progressPercent, 100)}%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] mt-2">
+                            <span class="${questData.completed ? 'text-green-500' : 'text-gray-400'}">${progressText}</span>
+                            <span class="${questData.completed ? 'text-green-500' : 'text-yellow-500'}">${questData.completed ? '✅ Награда получена' : 'В процессе'}</span>
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML += questHTML;
+            });
+        }
+
+        function startQuestsTimer() {
+            if (!questsData || questsData.length === 0) return;
+            
+            const lastReset = new Date(questsData[0].last_reset);
+            const nextReset = new Date(lastReset.getTime() + 24 * 60 * 60 * 1000);
+            
+            function updateTimer() {
+                const now = new Date();
+                const diff = nextReset - now;
+                
+                if (diff <= 0) {
+                    document.getElementById('reset-timer').textContent = 'Сброс...';
+                    resetDailyQuests();
+                    return;
+                }
+                
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                document.getElementById('reset-timer').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                setTimeout(updateTimer, 1000);
+            }
+            
+            updateTimer();
+        }
+
+        // === АНИМАЦИЯ ОТКРЫТИЯ КЕЙСА ===
+        function closeCaseOpening() {
+            document.getElementById('case-opening-modal').classList.add('hidden');
+        }
+
+        function showCaseOpening(prize, description) {
+            document.getElementById('case-prize-content').innerHTML = prize;
+            document.getElementById('case-prize-desc').textContent = description;
+            document.getElementById('case-opening-modal').classList.remove('hidden');
+        }
+
+        // === HIGH/LOW GAME ===
+        function startHL() {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            if(u.balance < bet) {
+                showCustomAlert('ОШИБКА', 'Недостаточно BC');
+                return;
+            }
+            
+            hlBase = Math.floor(Math.random() * 80) + 10;
+            document.getElementById('hl-num').innerText = hlBase;
+            document.getElementById('hl-setup').classList.add('hidden');
+            document.getElementById('hl-action').classList.remove('hidden');
+        }
+
+        async function playHL(c) {
+            const bet = parseInt(document.getElementById('hl-bet').value);
+            const n = Math.floor(Math.random() * 100) + 1;
+            const win = (c === 'high' && n > hlBase) || (c === 'low' && n < hlBase);
+            
+            if (win) {
+                await updateData(bet, 150);
+                showModal("ПОБЕДА", `Число: ${n}. +${bet} BC`);
+            } else {
+                await updateData(-bet, 20);
+                showModal("ПРОИГРЫШ", `Число: ${n}. -${bet} BC`);
+            }
+            
+            document.getElementById('hl-num').innerText = '?';
+            document.getElementById('hl-setup').classList.remove('hidden');
+            document.getElementById('hl-action').classList.add('hidden');
+            
+            updateQuestProgress('play_highlow', 1);
+        }
+
+        // === БАНК ===
+        async function bankAction(type) {
+            const val = prompt("Введите сумму:");
+            const amt = parseInt(val);
+            
+            if(!amt || amt <= 0) {
+                showCustomAlert('ОШИБКА', 'Введите корректную сумму');
+                return;
+            }
+            
+            let nB = u.balance, nBK = u.bank_balance;
+            
+            if(type === 'dep') {
+                if(amt > u.balance) {
+                    showCustomAlert('ОШИБКА', "Недостаточно средств на балансе");
+                    return;
+                }
+                nB -= amt; 
+                nBK += amt;
+                updateQuestProgress('deposit_bank', amt);
+            } else {
+                if(amt > u.bank_balance) {
+                    showCustomAlert('ОШИБКА', "Недостаточно средств в банке");
+                    return;
+                }
+                nB += amt; 
+                nBK -= amt;
+            }
+            
+            try {
+                const { data, error } = await sb
+                    .from('profiles')
+                    .update({ balance: nB, bank_balance: nBK })
+                    .eq('username', u.username)
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                u = data; 
+                localStorage.setItem('bw_session', JSON.stringify(u));
+                updateUI();
+                showCustomAlert('УСПЕХ', `Операция выполнена успешно!`);
+            } catch (error) {
+                console.error('Ошибка банковской операции:', error);
+                showCustomAlert('ОШИБКА', 'Ошибка выполнения операции');
+            }
+        }
+
+        // === ЧАТ И ДРУЗЬЯ ===
+        async function sendMessage() {
+            const txt = document.getElementById('chat-input').value.trim();
+            if(!txt || !activeFriend) return;
+            
+            if (txt.length > 200) {
+                showCustomAlert('ОШИБКА', 'Сообщение слишком длинное (макс. 200 символов)');
+                return;
+            }
+            
+            try {
+                // Проверка на мутед
+                const { data: muted } = await sb.from('muted_users')
+                    .select('*')
+                    .eq('username', u.username)
+                    .gt('mute_until', new Date().toISOString())
+                    .single();
+                
+                if (muted) {
+                    showCustomAlert('ОШИБКА', `Вы заглушены до ${new Date(muted.mute_until).toLocaleString()}. Причина: ${muted.reason}`);
+                    return;
+                }
+                
+                await sb.from('messages').insert([{ 
+                    sender: u.username, 
+                    receiver: activeFriend, 
+                    text: txt,
+                    created_at: new Date().toISOString()
+                }]);
+                
+                document.getElementById('chat-input').value = '';
+                loadMessages();
+            } catch (error) {
+                console.error('Ошибка отправки сообщения:', error);
+            }
+        }
+
+        async function loadMessages() {
+            try {
+                const { data, error } = await sb.from('messages').select('*')
+                    .or(`and(sender.eq.${u.username},receiver.eq.${activeFriend}),and(sender.eq.${activeFriend},receiver.eq.${u.username})`)
+                    .order('created_at', { ascending: true })
+                    .limit(50);
+                
+                if (error) throw error;
+                
+                const box = document.getElementById('chat-box');
+                box.innerHTML = data.map(m => `
+                    <div class="flex ${m.sender === u.username ? 'justify-end' : 'justify-start'}">
+                        <div class="${m.sender === u.username ? 'bg-red-600' : 'bg-white/10'} p-3 rounded-2xl max-w-[80%] text-[10px]">
+                            <p class="font-bold mb-1 uppercase text-[7px] opacity-50">${m.sender}</p>
+                            <p>${m.text}</p>
+                        </div>
+                    </div>`).join('');
+                box.scrollTop = box.scrollHeight;
+            } catch (error) {
+                console.error('Ошибка загрузки сообщений:', error);
+            }
+        }
+
+        function openFriendMenu(name) {
+            activeFriend = name;
+            document.getElementById('active-friend-nick').innerText = name;
+            document.getElementById('friend-menu').classList.add('open');
+            loadMessages();
+        }
+        
+        function closeFriendMenu() { 
+            document.getElementById('friend-menu').classList.remove('open'); 
+            activeFriend = null; 
+        }
+
+        // === КЕЙСЫ ===
+        function renderCases() {
+            const container = document.getElementById('case-list');
+            container.innerHTML = '';
+            
+            CASES.forEach(c => {
+                let priceText = c.price.toLocaleString() + ' BC';
+                let keyInfo = '';
+                let canOpen = true;
+                let disabled = false;
+                
+                // Проверка VIP статуса
+                if (c.vipOnly && !hasVipKey) {
+                    canOpen = false;
+                    priceText = 'ТОЛЬКО ДЛЯ VIP';
+                    disabled = true;
+                }
+                
+                // Проверка уровня
+                if (c.minLevel) {
+                    const userLevel = Math.floor(u.xp / 1000) + 1;
+                    if (userLevel < c.minLevel) {
+                        canOpen = false;
+                        priceText = `ТРЕБУЕТСЯ ${c.minLevel} УРОВЕНЬ`;
+                        disabled = true;
+                    }
+                }
+                
+                // Проверка ключей
+                if (c.id === 'gold' && hasGoldKey && canOpen) {
+                    priceText = 'БЕСПЛАТНО (КЛЮЧ)';
+                    keyInfo = 'Есть ключ';
+                } else if (c.id === 'black' && hasUltraKey && canOpen) {
+                    priceText = 'БЕСПЛАТНО (КЛЮЧ)';
+                    keyInfo = 'Есть ключ';
+                } else if (c.id === 'vip' && hasVipKey && canOpen) {
+                    priceText = 'БЕСПЛАТНО (VIP)';
+                    keyInfo = 'VIP доступ';
+                }
+                
+                // Применяем скидку
+                let finalPrice = c.price;
+                if (c.discount > 0 && !keyInfo) {
+                    finalPrice = Math.floor(c.price * (100 - c.discount) / 100);
+                    priceText = `<s>${c.price.toLocaleString()} BC</s> ${finalPrice.toLocaleString()} BC`;
+                }
+                
+                const caseHTML = `
+                <div class="glass p-5 rounded-3xl flex justify-between items-center border-l-4 border-${c.color} relative">
+                    ${c.tag ? `<span class="case-tag case-${c.tag}">${c.tag.toUpperCase()}</span>` : ''}
+                    <div>
+                        <p class="font-black italic text-xs uppercase">${c.name}</p>
+                        <p class="text-red-600 text-[10px] font-bold">${priceText}</p>
+                        ${keyInfo ? `<p class="text-green-500 text-[8px] font-bold mt-1">${keyInfo}</p>` : ''}
+                        ${c.discount > 0 ? `<p class="text-yellow-500 text-[7px] font-bold">-${c.discount}%</p>` : ''}
+                        <p class="text-gray-500 text-[7px] mt-1">Шанс: ${Math.floor(c.winRate * 100)}%</p>
+                    </div>
+                    <button onclick="openCase('${c.id}')" class="red-btn px-6 py-3 rounded-xl text-[10px] ${disabled ? 'opacity-50 cursor-not-allowed' : ''}" ${disabled ? 'disabled' : ''}>
+                        ${disabled ? 'ЗАБЛОКИРОВАНО' : 'ОТКРЫТЬ'}
+                    </button>
+                </div>`;
+                
+                container.innerHTML += caseHTML;
+            });
+        }
+
+        async function openCase(id) {
+            const c = CASES.find(x => x.id === id);
+            
+            // Проверка VIP статуса
+            if (c.vipOnly && !hasVipKey) {
+                showCustomAlert('ОШИБКА', "Этот кейс доступен только для VIP игроков!");
+                return;
+            }
+            
+            // Проверка уровня
+            if (c.minLevel) {
+                const userLevel = Math.floor(u.xp / 1000) + 1;
+                if (userLevel < c.minLevel) {
+                    showCustomAlert('ОШИБКА', `Для открытия этого кейса требуется ${c.minLevel} уровень!`);
+                    return;
+                }
+            }
+            
+            let finalPrice = c.price;
+            let isUsingKey = false;
+            
+            // Проверяем ключи и скидки
+            if (c.id === 'gold' && hasGoldKey) { 
+                finalPrice = 0; 
+                isUsingKey = true; 
+            } else if (c.id === 'black' && hasUltraKey) { 
+                finalPrice = 0; 
+                isUsingKey = true; 
+            } else if (c.id === 'vip' && hasVipKey) { 
+                finalPrice = 0; 
+                isUsingKey = true; 
+            } else if (c.discount > 0) {
+                finalPrice = Math.floor(c.price * (100 - c.discount) / 100);
+            }
+            
+            if(u.balance < finalPrice) {
+                showCustomAlert('ОШИБКА', "Недостаточно BC");
+                return;
+            }
+            
+            const isWin = Math.random() < c.winRate;
+            let winB = 0;
+            let winXP = 0;
+            let prizeType = 'bc';
+            
+            if (isWin) {
+                winB = Math.floor(Math.random() * (c.maxB - c.minB)) + c.minB;
+                winXP = Math.floor(winB / 100);
+                
+                // Особые награды для редких кейсов
+                if (c.id === 'black' && Math.random() < 0.05) {
+                    hasUltraKey = true;
+                    localStorage.setItem('ultra_key_' + u.username, 'true');
+                    prizeType = 'key';
+                } else if (c.id === 'vip' && Math.random() < 0.1) {
+                    const vipUntil = new Date();
+                    vipUntil.setMonth(vipUntil.getMonth() + 1);
+                    await sb.from('profiles').update({ 
+                        vip_until: vipUntil.toISOString() 
+                    }).eq('username', u.username);
+                    hasVipKey = true;
+                    prizeType = 'vip';
+                } else if (c.id === 'legendary' && Math.random() < 0.15) {
+                    winB = Math.floor(winB * 1.5);
+                }
+            } else {
+                winB = Math.floor(Math.random() * (finalPrice * 0.3));
+                winXP = Math.floor(winB / 200);
+            }
+            
+            if (isUsingKey) {
+                if (c.id === 'gold') {
+                    hasGoldKey = false;
+                    localStorage.setItem('gold_key_' + u.username, 'false');
+                } else if (c.id === 'black') {
+                    hasUltraKey = false;
+                    localStorage.setItem('ultra_key_' + u.username, 'false');
+                }
+                renderCases();
+            }
+            
+            await updateData(winB - finalPrice, winXP);
+            updateQuestProgress('open_cases', 1);
+            
+            // Показываем анимацию открытия
+            let prizeDisplay = '';
+            let prizeDesc = '';
+            
+            if (prizeType === 'key') {
+                prizeDisplay = '🔑';
+                prizeDesc = `КЛЮЧ ОТ ULTRA КЕЙСА! + ${winB.toLocaleString()} BC`;
+            } else if (prizeType === 'vip') {
+                prizeDisplay = '👑';
+                prizeDesc = `VIP СТАТУС НА МЕСЯЦ! + ${winB.toLocaleString()} BC`;
+            } else {
+                prizeDisplay = winB.toLocaleString() + ' BC';
+                prizeDesc = `Вы получили: ${winB.toLocaleString()} BC${winXP ? ' и ' + winXP + ' XP' : ''}! ${isWin ? 'ОКУП!' : 'НЕ ПОВЕЗЛО'}`;
+            }
+            
+            showCaseOpening(prizeDisplay, prizeDesc);
+        }
+
+        // === ДРУЗЬЯ ===
+        async function sendFriendReq() {
+            const to = document.getElementById('target-nick').value.trim().toUpperCase();
+            if(!to || to === u.username) {
+                showCustomAlert('ОШИБКА', 'Некорректный никнейм');
+                return;
+            }
+            
+            try {
+                const { data: targetExists, error } = await sb
+                    .from('profiles')
+                    .select('username')
+                    .eq('username', to)
+                    .single();
+                
+                if (error || !targetExists) {
+                    showCustomAlert('ОШИБКА', "Игрок не найден!");
+                    return;
+                }
+                
+                await sb.from('interactions').insert([{ 
+                    from_user: u.username, 
+                    to_user: to, 
+                    type: 'friend_req',
+                    created_at: new Date().toISOString()
+                }]);
+                
+                updateQuestProgress('add_friend', 1);
+                showCustomAlert('УСПЕХ', "Запрос в друзья отправлен!");
+                document.getElementById('target-nick').value = '';
+            } catch (error) {
+                console.error('Ошибка отправки запроса:', error);
+                showCustomAlert('ОШИБКА', 'Ошибка отправки запроса');
+            }
+        }
+
+        async function loadFriends() {
+            try {
+                const { data, error } = await sb
+                    .from('friendships')
+                    .select('*')
+                    .or(`user1.eq.${u.username},user2.eq.${u.username}`);
+                
+                if (error) throw error;
+                
+                const container = document.getElementById('friends-list');
+                container.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach(f => {
+                        const n = f.user1 === u.username ? f.user2 : f.user1;
+                        container.innerHTML += `
+                            <div class="glass p-4 rounded-2xl flex justify-between items-center">
+                                <span class="font-black text-sm uppercase">${n}</span>
+                                <button onclick="openFriendMenu('${n}')" class="red-btn px-4 py-2 rounded-xl text-[10px] font-black italic">СВЯЗЬ</button>
+                            </div>`;
+                    });
+                } else {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4 text-xs">У вас пока нет друзей</p>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки друзей:', error);
+            }
+        }
+
+        // === ЛИДЕРБОРД ===
+        async function loadTop() {
+            try {
+                const { data, error } = await sb
+                    .from('profiles')
+                    .select('username, balance, xp, vip_until')
+                    .order('balance', { ascending: false })
+                    .limit(15);
+                
+                if (error) throw error;
+                
+                const box = document.getElementById('leaderboard');
+                box.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach((it, i) => {
+                        const lvl = Math.floor(it.xp / 1000) + 1;
+                        const isVip = it.vip_until && new Date(it.vip_until) > new Date();
+                        
+                        box.innerHTML += `
+                            <div class="leaderboard-item ${i < 3 ? 'border-red-600' : ''}">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <span class="font-black text-red-600 w-8 text-center">#${i+1}</span>
+                                        <div class="ml-4">
+                                            <p class="font-bold uppercase text-sm leading-none">${it.username} ${isVip ? '👑' : ''}</p>
+                                            <p class="text-gray-500 text-xs mt-1">Level: ${lvl} | XP: ${it.xp.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="font-black italic text-white text-lg">${it.balance.toLocaleString()}</span>
+                                        <span class="text-red-600 text-xs font-black ml-1 italic">BC</span>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                } else {
+                    box.innerHTML = '<p class="text-gray-500 text-center py-4">Нет данных</p>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки лидерборда:', error);
+                showCustomAlert('ОШИБКА', 'Ошибка загрузки лидерборда');
+            }
+        }
+
+        // === REALTIME ===
+        function initRealtime() {
+            if (realtimeSubscription) {
+                realtimeSubscription.unsubscribe();
+            }
+            
+            realtimeSubscription = sb
+                .channel('global')
+                .on('postgres_changes', 
+                    { event: 'INSERT', schema: 'public', table: 'global_alerts' }, 
+                    (payload) => {
+                        triggerBroadcast(payload.new.sender, payload.new.message);
+                    }
+                )
+                .on('postgres_changes',
+                    { event: 'UPDATE', schema: 'public', table: 'profiles' },
+                    async (payload) => {
+                        if (u && payload.new.username === u.username) {
+                            u = payload.new;
+                            localStorage.setItem('bw_session', JSON.stringify(u));
+                            await checkBanStatus();
+                            updateUI();
+                        }
+                    }
+                )
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'active_events' },
+                    async () => {
+                        await loadActiveEvent();
+                    }
+                )
+                .subscribe();
+        }
+
+        // === ИВЕНТЫ ===
         async function loadActiveEvent() {
-            const { data, error } = await sb
-                .from('active_events')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
+            try {
+                const { data, error } = await sb
+                    .from('active_events')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
 
-            if (error || !data) {
+                if (error || !data) {
+                    activeEvent = null;
+                    hideEventIndicator();
+                    return;
+                }
+
+                const now = new Date();
+                const endTime = new Date(data.end_time);
+                
+                if (endTime <= now) {
+                    await sb.from('active_events').delete().eq('id', data.id);
+                    activeEvent = null;
+                    hideEventIndicator();
+                    return;
+                }
+
+                if (!activeEvent || activeEvent.id !== data.id) {
+                    activeEvent = data;
+                    showEventIndicator();
+                }
+                
+                updateEventTimer();
+            } catch (error) {
+                console.error('Ошибка загрузки ивента:', error);
                 activeEvent = null;
                 hideEventIndicator();
-                return;
             }
-
-            const now = new Date();
-            const endTime = new Date(data.end_time);
-            if (endTime <= now) {
-                await sb.from('active_events').delete().eq('id', data.id);
-                activeEvent = null;
-                hideEventIndicator();
-                return;
-            }
-
-            if (!activeEvent || activeEvent.id !== data.id) {
-                activeEvent = data;
-                showEventIndicator();
-            }
-            
-            updateEventTimer();
         }
 
         function showEventIndicator() {
@@ -1020,19 +2513,68 @@
             }, 5000);
         }
 
-        // === РАСШИРЕННЫЕ АДМИН-КОМАНДЫ ===
+        // === АДМИН ПАНЕЛЬ ===
+        function openAdminModal() {
+            document.getElementById('admin-modal').classList.remove('hidden');
+            loadAdminStats();
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.add('hidden');
+        }
+
+        async function loadAdminStats() {
+            try {
+                // Онлайн (заходили в последние 5 минут)
+                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+                const { count: onlineCount } = await sb
+                    .from('profiles')
+                    .select('*', { count: 'exact' })
+                    .gte('last_login', fiveMinutesAgo);
+                
+                // Активные ивенты
+                const { count: eventCount } = await sb
+                    .from('active_events')
+                    .select('*', { count: 'exact' });
+                
+                // Общий баланс системы
+                const { data: allUsers } = await sb
+                    .from('profiles')
+                    .select('balance');
+                
+                const systemBalance = allUsers.reduce((sum, user) => sum + (user.balance || 0), 0);
+                
+                document.getElementById('admin-online').textContent = onlineCount || 0;
+                document.getElementById('admin-events').textContent = eventCount || 0;
+                document.getElementById('admin-system-balance').textContent = systemBalance.toLocaleString() + ' BC';
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+            }
+        }
+
         async function executeAdminCommand() {
-            if (!u.is_admin) return alert("У вас нет прав администратора!");
+            if (!u.is_admin) {
+                showCustomAlert('ОШИБКА', "У вас нет прав администратора!");
+                return;
+            }
             
             const input = document.getElementById('admin-input');
             const fullCmd = input.value.trim();
-            if (!fullCmd) return;
+            if (!fullCmd) {
+                showCustomAlert('ОШИБКА', 'Введите команду');
+                return;
+            }
 
             await executeAdminCmd(fullCmd);
             input.value = '';
         }
 
         async function executeAdminCmd(fullCmd) {
+            if (!u.is_admin) {
+                showCustomAlert('ОШИБКА', "У вас нет прав администратора!");
+                return;
+            }
+            
             const parts = fullCmd.split(' ');
             const cmd = parts[0].toLowerCase();
             const targetNick = parts[1] ? parts[1].toUpperCase() : null;
@@ -1042,56 +2584,127 @@
             try {
                 switch(cmd) {
                     case '/setbc':
-                        if (!targetNick || !value) throw "Формат: /setbc (ник) (число)";
-                        await sb.from('profiles').update({ balance: parseInt(value) }).eq('username', targetNick);
-                        alert(`Баланс ${targetNick} изменен на ${value}`);
+                        if (!targetNick || !value) {
+                            showCustomAlert('ОШИБКА', "Формат: /setbc (ник) (число)");
+                            return;
+                        }
+                        
+                        const balance = parseInt(value);
+                        if (isNaN(balance)) {
+                            showCustomAlert('ОШИБКА', "Некорректное число");
+                            return;
+                        }
+                        
+                        await sb.from('profiles').update({ balance: balance }).eq('username', targetNick);
+                        showCustomAlert('УСПЕХ', `Баланс ${targetNick} изменен на ${balance}`);
+                        
+                        if (targetNick === u.username) {
+                            await refreshUserData();
+                        }
                         break;
 
                     case '/setxp':
-                        if (!targetNick || !value) throw "Формат: /setxp (ник) (число)";
-                        await sb.from('profiles').update({ xp: parseInt(value) }).eq('username', targetNick);
-                        alert(`XP ${targetNick} изменен на ${value}`);
+                        if (!targetNick || !value) {
+                            showCustomAlert('ОШИБКА', "Формат: /setxp (ник) (число)");
+                            return;
+                        }
+                        
+                        const xp = parseInt(value);
+                        if (isNaN(xp)) {
+                            showCustomAlert('ОШИБКА', "Некорректное число");
+                            return;
+                        }
+                        
+                        await sb.from('profiles').update({ xp: xp }).eq('username', targetNick);
+                        showCustomAlert('УСПЕХ', `XP ${targetNick} изменен на ${xp}`);
+                        
+                        if (targetNick === u.username) {
+                            await refreshUserData();
+                        }
                         break;
 
                     case '/setlevel':
-                        if (!targetNick || !value) throw "Формат: /setlevel (ник) (уровень)";
-                        const xpForLevel = (parseInt(value) - 1) * 1000;
+                        if (!targetNick || !value) {
+                            showCustomAlert('ОШИБКА', "Формат: /setlevel (ник) (уровень)");
+                            return;
+                        }
+                        
+                        const level = parseInt(value);
+                        if (isNaN(level) || level < 1) {
+                            showCustomAlert('ОШИБКА', "Некорректный уровень");
+                            return;
+                        }
+                        
+                        const xpForLevel = (level - 1) * 1000;
                         await sb.from('profiles').update({ xp: xpForLevel }).eq('username', targetNick);
-                        alert(`Уровень ${targetNick} изменен на ${value}`);
+                        showCustomAlert('УСПЕХ', `Уровень ${targetNick} изменен на ${level}`);
+                        
+                        if (targetNick === u.username) {
+                            await refreshUserData();
+                        }
                         break;
 
                     case '/globalalert':
                         const msg = parts.slice(1).join(' ');
-                        if (!msg) throw "Формат: /globalalert (текст)";
+                        if (!msg) {
+                            showCustomAlert('ОШИБКА', "Формат: /globalalert (текст)");
+                            return;
+                        }
+                        
                         await sb.from('global_alerts').insert([{ 
                             sender: `АДМИНИСТРАТОР ${u.username}`, 
-                            message: msg 
+                            message: msg,
+                            created_at: new Date().toISOString()
                         }]);
+                        showCustomAlert('УСПЕХ', "Сообщение отправлено всем игрокам");
                         break;
 
                     case '/ban':
                         const reason = parts.slice(2).join(' ') || "Нарушение правил";
-                        if (!targetNick) throw "Формат: /ban (ник) (причина)";
-                        await sb.from('profiles').update({ is_banned: true, ban_reason: reason }).eq('username', targetNick);
+                        if (!targetNick) {
+                            showCustomAlert('ОШИБКА', "Формат: /ban (ник) (причина)");
+                            return;
+                        }
+                        
+                        await sb.from('profiles').update({ 
+                            is_banned: true, 
+                            ban_reason: reason 
+                        }).eq('username', targetNick);
+                        
                         await sb.from('global_alerts').insert([{
                             sender: 'СИСТЕМА',
-                            message: `Игрок ${targetNick} заблокирован администратором ${u.username}. Причина: ${reason}`
+                            message: `Игрок ${targetNick} заблокирован администратором ${u.username}. Причина: ${reason}`,
+                            created_at: new Date().toISOString()
                         }]);
-                        alert(`Игрок ${targetNick} забанен`);
+                        
+                        showCustomAlert('УСПЕХ', `Игрок ${targetNick} забанен`);
                         break;
 
                     case '/unban':
-                        if (!targetNick) throw "Формат: /unban (ник)";
-                        await sb.from('profiles').update({ is_banned: false, ban_reason: '' }).eq('username', targetNick);
-                        alert(`Игрок ${targetNick} разбанен`);
+                        if (!targetNick) {
+                            showCustomAlert('ОШИБКА', "Формат: /unban (ник)");
+                            return;
+                        }
+                        
+                        await sb.from('profiles').update({ 
+                            is_banned: false, 
+                            ban_reason: '' 
+                        }).eq('username', targetNick);
+                        
+                        showCustomAlert('УСПЕХ', `Игрок ${targetNick} разбанен`);
                         break;
 
                     case '/givekey':
-                        if (!targetNick || !value) throw "Формат: /givekey (ник) (GOLD/ULTRA/VIP)";
+                        if (!targetNick || !value) {
+                            showCustomAlert('ОШИБКА', "Формат: /givekey (ник) (GOLD/ULTRA/VIP)");
+                            return;
+                        }
+                        
                         const caseType = value.toUpperCase();
                         
                         if (!['GOLD', 'ULTRA', 'VIP'].includes(caseType)) {
-                            throw "Доступные ключи: GOLD, ULTRA, VIP";
+                            showCustomAlert('ОШИБКА', "Доступные ключи: GOLD, ULTRA, VIP");
+                            return;
                         }
                         
                         let keyType = '';
@@ -1102,35 +2715,40 @@
                         }
                         
                         // Сохраняем ключ
-                        localStorage.setItem(`${keyType}_key_${targetNick}`, 'true');
-                        
-                        // Если VIP ключ, устанавливаем VIP статус
-                        if (caseType === 'VIP') {
+                        if (keyType === 'vip') {
                             const vipUntil = new Date();
                             vipUntil.setMonth(vipUntil.getMonth() + 1);
                             await sb.from('profiles').update({ 
                                 vip_until: vipUntil.toISOString() 
                             }).eq('username', targetNick);
+                        } else {
+                            localStorage.setItem(`${keyType}_key_${targetNick}`, 'true');
                         }
                         
                         await sb.from('global_alerts').insert([{ 
                             sender: 'АДМИНИСТРАТОР', 
-                            message: `Администратор ${u.username} выдал ключ от ${caseType} кейса игроку ${targetNick}!` 
+                            message: `Администратор ${u.username} выдал ключ от ${caseType} кейса игроку ${targetNick}!`,
+                            created_at: new Date().toISOString()
                         }]);
                         
                         await sb.from('messages').insert([{
                             sender: 'СИСТЕМА',
                             receiver: targetNick,
-                            text: `Администратор ${u.username} выдал вам ключ от ${caseType} кейса!`
+                            text: `Администратор ${u.username} выдал вам ключ от ${caseType} кейса!`,
+                            created_at: new Date().toISOString()
                         }]);
                         
-                        alert(`Ключ от ${caseType} кейса выдан игроку ${targetNick}`);
+                        showCustomAlert('УСПЕХ', `Ключ от ${caseType} кейса выдан игроку ${targetNick}`);
                         break;
 
                     case '/event':
                         const eventType = parts[1];
                         const duration = parseInt(parts[2]);
-                        if (!eventType || !duration) throw "Формат: /event (тип) (минуты)";
+                        
+                        if (!eventType || !duration || duration < 1) {
+                            showCustomAlert('ОШИБКА', "Формат: /event (тип) (минуты)");
+                            return;
+                        }
                         
                         let validEventType = '';
                         if (eventType === 'x2XP') validEventType = 'x2 XP';
@@ -1140,37 +2758,48 @@
                         else if (eventType === 'x2 XP' || eventType === 'x2 BC' || eventType === 'x2 WIN' || eventType === '50% BONUS') {
                             validEventType = eventType;
                         } else {
-                            throw "Доступные ивенты: x2XP, x2BC, x2WIN, 50BONUS";
+                            showCustomAlert('ОШИБКА', "Доступные ивенты: x2XP, x2BC, x2WIN, 50BONUS");
+                            return;
                         }
                         
+                        // Удаляем старый ивент такого же типа
                         await sb.from('active_events').delete().eq('event_type', validEventType);
                         
                         const endTime = new Date();
                         endTime.setMinutes(endTime.getMinutes() + duration);
                         
-                        const { data: newEvent, error: eventError } = await sb.from('active_events').insert([{
-                            event_type: validEventType,
-                            started_by: u.username,
-                            end_time: endTime.toISOString(),
-                            duration_minutes: duration
-                        }]).select().single();
+                        const { data: newEvent, error: eventError } = await sb
+                            .from('active_events')
+                            .insert([{
+                                event_type: validEventType,
+                                started_by: u.username,
+                                end_time: endTime.toISOString(),
+                                duration_minutes: duration,
+                                created_at: new Date().toISOString()
+                            }])
+                            .select()
+                            .single();
                         
-                        if (eventError) throw "Ошибка создания ивента: " + eventError.message;
+                        if (eventError) throw eventError;
                         
                         await sb.from('global_alerts').insert([{ 
                             sender: 'АДМИНИСТРАТОР', 
-                            message: `Администратор ${u.username} запустил ивент "${validEventType}" на ${duration} минут!` 
+                            message: `Администратор ${u.username} запустил ивент "${validEventType}" на ${duration} минут!`,
+                            created_at: new Date().toISOString()
                         }]);
                         
                         activeEvent = newEvent;
                         showEventIndicator();
                         
-                        alert(`Ивент "${validEventType}" начат на ${duration} минут`);
+                        showCustomAlert('УСПЕХ', `Ивент "${validEventType}" начат на ${duration} минут`);
                         break;
 
                     case '/stopevent':
                         let eventTypeToStop = parts[1];
-                        if (!eventTypeToStop) throw "Формат: /stopevent (тип ивента)";
+                        if (!eventTypeToStop) {
+                            showCustomAlert('ОШИБКА', "Формат: /stopevent (тип ивента)");
+                            return;
+                        }
                         
                         if (eventTypeToStop === 'x2XP') eventTypeToStop = 'x2 XP';
                         else if (eventTypeToStop === 'x2BC') eventTypeToStop = 'x2 BC';
@@ -1184,14 +2813,16 @@
                             .single();
                         
                         if (!eventData) {
-                            throw `Ивент "${eventTypeToStop}" не найден`;
+                            showCustomAlert('ОШИБКА', `Ивент "${eventTypeToStop}" не найден`);
+                            return;
                         }
                         
                         await sb.from('active_events').delete().eq('event_type', eventTypeToStop);
                         
                         await sb.from('global_alerts').insert([{ 
                             sender: 'АДМИНИСТРАТОР', 
-                            message: `Ивент "${eventTypeToStop}" завершен администратором ${u.username}` 
+                            message: `Ивент "${eventTypeToStop}" завершен администратором ${u.username}`,
+                            created_at: new Date().toISOString()
                         }]);
                         
                         if (activeEvent && activeEvent.event_type === eventTypeToStop) {
@@ -1199,12 +2830,20 @@
                             hideEventIndicator();
                         }
                         
-                        alert(`Ивент "${eventTypeToStop}" остановлен`);
+                        showCustomAlert('УСПЕХ', `Ивент "${eventTypeToStop}" остановлен`);
                         break;
 
                     case '/giveall':
-                        if (!value) throw "Формат: /giveall (сумма)";
+                        if (!value) {
+                            showCustomAlert('ОШИБКА', "Формат: /giveall (сумма)");
+                            return;
+                        }
+                        
                         const amount = parseInt(value);
+                        if (isNaN(amount) || amount <= 0) {
+                            showCustomAlert('ОШИБКА', "Некорректная сумма");
+                            return;
+                        }
                         
                         const { data: allUsers } = await sb.from('profiles').select('username, balance');
                         
@@ -1216,37 +2855,62 @@
                         
                         await sb.from('global_alerts').insert([{ 
                             sender: 'АДМИНИСТРАТОР', 
-                            message: `Администратор ${u.username} выдал всем игрокам по ${amount.toLocaleString()} BC!` 
+                            message: `Администратор ${u.username} выдал всем игрокам по ${amount.toLocaleString()} BC!`,
+                            created_at: new Date().toISOString()
                         }]);
                         
-                        alert(`Выдано всем игрокам по ${amount} BC`);
+                        showCustomAlert('УСПЕХ', `Выдано всем игрокам по ${amount.toLocaleString()} BC`);
                         break;
 
                     case '/clearchat':
                         await sb.from('messages').delete().neq('id', 0);
                         await sb.from('global_alerts').insert([{ 
                             sender: 'СИСТЕМА', 
-                            message: `Администратор ${u.username} очистил чат` 
+                            message: `Администратор ${u.username} очистил чат`,
+                            created_at: new Date().toISOString()
                         }]);
-                        alert("Чат очищен");
+                        showCustomAlert('УСПЕХ', "Чат очищен");
                         break;
 
                     case '/reset':
-                        if (!targetNick) throw "Формат: /reset (ник)";
+                        if (!targetNick) {
+                            showCustomAlert('ОШИБКА', "Формат: /reset (ник)");
+                            return;
+                        }
+                        
                         await sb.from('profiles').update({ 
                             balance: 0,
                             bank_balance: 0,
                             xp: 0,
                             is_banned: false,
                             ban_reason: '',
-                            vip_until: null
+                            vip_until: null,
+                            daily_streak: 0,
+                            total_wagered: 0,
+                            total_won: 0
                         }).eq('username', targetNick);
-                        alert(`Прогресс игрока ${targetNick} сброшен`);
+                        
+                        // Очищаем полученные уровни
+                        await sb.from('claimed_levels').delete().eq('username', targetNick);
+                        
+                        // Очищаем квесты
+                        await sb.from('quests').delete().eq('username', targetNick);
+                        
+                        showCustomAlert('УСПЕХ', `Прогресс игрока ${targetNick} сброшен`);
                         break;
 
                     case '/mute':
-                        if (!targetNick || !value) throw "Формат: /mute (ник) (минуты)";
+                        if (!targetNick || !value) {
+                            showCustomAlert('ОШИБКА', "Формат: /mute (ник) (минуты)");
+                            return;
+                        }
+                        
                         const muteMinutes = parseInt(value);
+                        if (isNaN(muteMinutes) || muteMinutes < 1) {
+                            showCustomAlert('ОШИБКА', "Некорректное время");
+                            return;
+                        }
+                        
                         const muteUntil = new Date();
                         muteUntil.setMinutes(muteUntil.getMinutes() + muteMinutes);
                         
@@ -1254,20 +2918,29 @@
                             username: targetNick,
                             muted_by: u.username,
                             mute_until: muteUntil.toISOString(),
-                            reason: extra || 'Нарушение правил чата'
+                            reason: extra || 'Нарушение правил чата',
+                            created_at: new Date().toISOString()
                         }]);
                         
-                        alert(`Игрок ${targetNick} заглушен на ${muteMinutes} минут`);
+                        showCustomAlert('УСПЕХ', `Игрок ${targetNick} заглушен на ${muteMinutes} минут`);
                         break;
 
                     case '/unmute':
-                        if (!targetNick) throw "Формат: /unmute (ник)";
+                        if (!targetNick) {
+                            showCustomAlert('ОШИБКА', "Формат: /unmute (ник)");
+                            return;
+                        }
+                        
                         await sb.from('muted_users').delete().eq('username', targetNick);
-                        alert(`Игрок ${targetNick} разглушен`);
+                        showCustomAlert('УСПЕХ', `Игрок ${targetNick} разглушен`);
                         break;
 
                     case '/addvip':
-                        if (!targetNick) throw "Формат: /addvip (ник)";
+                        if (!targetNick) {
+                            showCustomAlert('ОШИБКА', "Формат: /addvip (ник)");
+                            return;
+                        }
+                        
                         const vipUntilDate = new Date();
                         vipUntilDate.setMonth(vipUntilDate.getMonth() + 1);
                         
@@ -1275,28 +2948,44 @@
                             vip_until: vipUntilDate.toISOString() 
                         }).eq('username', targetNick);
                         
-                        alert(`VIP статус выдан игроку ${targetNick} на 1 месяц`);
+                        showCustomAlert('УСПЕХ', `VIP статус выдан игроку ${targetNick} на 1 месяц`);
                         break;
 
                     case '/removevip':
-                        if (!targetNick) throw "Формат: /removevip (ник)";
+                        if (!targetNick) {
+                            showCustomAlert('ОШИБКА', "Формат: /removevip (ник)");
+                            return;
+                        }
+                        
                         await sb.from('profiles').update({ 
                             vip_until: null 
                         }).eq('username', targetNick);
                         
-                        alert(`VIP статус снят с игрока ${targetNick}`);
+                        showCustomAlert('УСПЕХ', `VIP статус снят с игрока ${targetNick}`);
                         break;
 
                     case '/rain':
-                        if (!value) throw "Формат: /rain (сумма)";
+                        if (!value) {
+                            showCustomAlert('ОШИБКА', "Формат: /rain (сумма)");
+                            return;
+                        }
+                        
                         const rainAmount = parseInt(value);
+                        if (isNaN(rainAmount) || rainAmount < 10000) {
+                            showCustomAlert('ОШИБКА', "Минимальная сумма дождя: 10.000 BC");
+                            return;
+                        }
                         
-                        if (rainAmount < 10000) throw "Минимальная сумма дождя: 10.000 BC";
-                        
+                        const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
                         const { data: onlineUsers } = await sb
                             .from('profiles')
                             .select('username, balance')
-                            .gte('last_login', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+                            .gte('last_login', fiveMinAgo);
+                        
+                        if (!onlineUsers || onlineUsers.length === 0) {
+                            showCustomAlert('ОШИБКА', 'Нет онлайн игроков');
+                            return;
+                        }
                         
                         const perUser = Math.floor(rainAmount / onlineUsers.length);
                         
@@ -1308,1061 +2997,73 @@
                         
                         await sb.from('global_alerts').insert([{ 
                             sender: 'СИСТЕМА', 
-                            message: `💰 ДЕНЕЖНЫЙ ДОЖДЬ! Администратор ${u.username} раздал ${rainAmount.toLocaleString()} BC между ${onlineUsers.length} игроками!` 
+                            message: `💰 ДЕНЕЖНЫЙ ДОЖДЬ! Администратор ${u.username} раздал ${rainAmount.toLocaleString()} BC между ${onlineUsers.length} игроками!`,
+                            created_at: new Date().toISOString()
                         }]);
                         
-                        alert(`Денежный дождь на ${rainAmount} BC проведен`);
+                        showCustomAlert('УСПЕХ', `Денежный дождь на ${rainAmount.toLocaleString()} BC проведен`);
                         break;
 
                     case '/systeminfo':
-                        const { count: userCount } = await sb.from('profiles').select('*', { count: 'exact' });
-                        const { count: onlineCount } = await sb.from('profiles')
+                        const { count: userCount } = await sb
+                            .from('profiles')
+                            .select('*', { count: 'exact' });
+                        
+                        const fiveMinAgo2 = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+                        const { count: onlineCount } = await sb
+                            .from('profiles')
                             .select('*', { count: 'exact' })
-                            .gte('last_login', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+                            .gte('last_login', fiveMinAgo2);
                         
-                        const { data: totalBalance } = await sb.from('profiles').select('balance');
-                        const systemBalance = totalBalance.reduce((sum, user) => sum + user.balance, 0);
+                        const { data: totalBalanceData } = await sb
+                            .from('profiles')
+                            .select('balance');
                         
-                        alert(`Системная информация:\n\nВсего игроков: ${userCount}\nОнлайн: ${onlineCount}\nОбщий баланс системы: ${systemBalance.toLocaleString()} BC`);
+                        const systemBalance = totalBalanceData.reduce((sum, user) => sum + (user.balance || 0), 0);
+                        
+                        showCustomAlert('ИНФОРМАЦИЯ О СИСТЕМЕ', 
+                            `Всего игроков: ${userCount}\n` +
+                            `Онлайн: ${onlineCount}\n` +
+                            `Общий баланс системы: ${systemBalance.toLocaleString()} BC\n` +
+                            `Активных ивентов: ${activeEvent ? '1' : '0'}`
+                        );
                         break;
 
                     default:
-                        alert("Неизвестная команда");
+                        showCustomAlert('ОШИБКА', "Неизвестная команда");
                 }
-            } catch (err) {
-                alert("Ошибка: " + err);
+            } catch (error) {
+                console.error('Ошибка выполнения команды:', error);
+                showCustomAlert('ОШИБКА', "Ошибка выполнения команды: " + error.message);
             }
-        }
-
-        function openAdminModal() {
-            document.getElementById('admin-modal').classList.remove('hidden');
-            loadAdminStats();
-        }
-
-        function closeAdminModal() {
-            document.getElementById('admin-modal').classList.add('hidden');
-        }
-
-        async function loadAdminStats() {
-            const { count: onlineCount } = await sb.from('profiles')
-                .select('*', { count: 'exact' })
-                .gte('last_login', new Date(Date.now() - 5 * 60 * 1000).toISOString());
-            
-            const { count: eventCount } = await sb.from('active_events').select('*', { count: 'exact' });
-            
-            const { data: totalBalance } = await sb.from('profiles').select('balance');
-            const systemBalance = totalBalance.reduce((sum, user) => sum + user.balance, 0);
-            
-            document.getElementById('admin-online').textContent = onlineCount;
-            document.getElementById('admin-events').textContent = eventCount;
-            document.getElementById('admin-system-balance').textContent = systemBalance.toLocaleString() + ' BC';
         }
 
         async function toggleMaintenance() {
-            const { data: maintenance } = await sb
-                .from('system_settings')
-                .select('*')
-                .eq('key', 'maintenance')
-                .single();
-            
-            if (maintenance && maintenance.value === 'true') {
-                await sb.from('system_settings').update({ value: 'false' }).eq('key', 'maintenance');
-                alert("Технические работы завершены");
-            } else {
-                await sb.from('system_settings').upsert([{
-                    key: 'maintenance',
-                    value: 'true',
-                    updated_at: new Date().toISOString()
-                }]);
-                alert("Технические работы включены");
-            }
-        }
-
-        async function loadClaimedLevels() {
-            const { data, error } = await sb
-                .from('claimed_levels')
-                .select('level')
-                .eq('username', u.username);
-            
-            if (data) {
-                claimedLevels = data.map(item => item.level);
-            }
-        }
-
-        async function saveClaimedLevel(level) {
-            const { data, error } = await sb
-                .from('claimed_levels')
-                .insert([{ username: u.username, level: level }]);
-            
-            if (!error) {
-                claimedLevels.push(level);
-            }
-        }
-
-        async function loadQuests() {
-            const { data, error } = await sb
-                .from('quests')
-                .select('*')
-                .eq('username', u.username);
-            
-            if (error || !data || data.length === 0) {
-                const questsToInsert = QUESTS.map(quest => ({
-                    username: u.username,
-                    quest_id: quest.id,
-                    progress: 0,
-                    completed: false,
-                    last_reset: new Date().toISOString()
-                }));
+            try {
+                const { data: maintenance } = await sb
+                    .from('system_settings')
+                    .select('*')
+                    .eq('key', 'maintenance')
+                    .single();
                 
-                const { data: newQuests, error: insertError } = await sb
-                    .from('quests')
-                    .insert(questsToInsert)
-                    .select();
-                
-                if (!insertError) {
-                    questsData = newQuests;
-                }
-            } else {
-                questsData = data;
-                
-                const now = new Date();
-                const lastReset = new Date(data[0].last_reset);
-                const hoursDiff = (now - lastReset) / (1000 * 60 * 60);
-                
-                if (hoursDiff >= 24) {
-                    await resetQuests();
-                }
-            }
-        }
-
-        async function resetQuests() {
-            const updates = questsData.map(quest => ({
-                id: quest.id,
-                progress: 0,
-                completed: false,
-                last_reset: new Date().toISOString()
-            }));
-            
-            for (const update of updates) {
-                await sb
-                    .from('quests')
-                    .update({ 
-                        progress: update.progress, 
-                        completed: update.completed,
-                        last_reset: update.last_reset 
-                    })
-                    .eq('id', update.id);
-            }
-            
-            await loadQuests();
-        }
-
-        async function updateQuestProgress(questId, amount) {
-            if (!questsData) return;
-            
-            const quest = questsData.find(q => q.quest_id === questId);
-            if (!quest || quest.completed) return;
-            
-            const questInfo = QUESTS.find(q => q.id === questId);
-            if (!questInfo) return;
-            
-            const newProgress = Math.min(quest.progress + amount, questInfo.required);
-            const completed = newProgress >= questInfo.required;
-            
-            const { error } = await sb
-                .from('quests')
-                .update({ 
-                    progress: newProgress,
-                    completed: completed 
-                })
-                .eq('id', quest.id);
-            
-            if (!error) {
-                quest.progress = newProgress;
-                quest.completed = completed;
-                
-                if (completed) {
-                    await updateData(0, questInfo.reward);
-                    showModal("ЗАДАНИЕ ВЫПОЛНЕНО", `Вы получили ${questInfo.reward} XP за выполнение задания!`);
-                }
-            }
-        }
-
-        async function updateUI() {
-            if(!u) return;
-            document.getElementById('ui-nick').innerText = u.username;
-            document.getElementById('ui-balance').innerText = u.balance.toLocaleString() + ' BC';
-            document.getElementById('ui-bank-balance').innerText = u.bank_balance.toLocaleString() + ' BC';
-            document.getElementById('ui-xp-total').innerText = u.xp.toLocaleString();
-
-            const lvl = Math.floor(u.xp / 1000) + 1;
-            const xpInLevel = u.xp % 1000;
-            const progress = (xpInLevel / 1000) * 100;
-
-            document.getElementById('bp-lvl').innerText = lvl;
-            document.getElementById('bp-xp-current').innerText = xpInLevel;
-            document.getElementById('bp-progress').style.width = progress + '%';
-
-            const claimBtn = document.getElementById('bp-claim-btn');
-            const isClaimed = claimedLevels.includes(lvl);
-            
-            if (lvl > 0 && !isClaimed) {
-                claimBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                claimBtn.classList.add('red-btn');
-                claimBtn.innerText = `Забрать награду за ${lvl} LVL`;
-            } else {
-                claimBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                claimBtn.classList.remove('red-btn');
-                claimBtn.innerText = "Награда получена";
-            }
-            
-            // Обновляем прогресс квеста на уровень
-            const levelQuest = QUESTS.find(q => q.id === 'reach_level_25');
-            if (levelQuest && lvl >= levelQuest.required) {
-                updateQuestProgress('reach_level_25', levelQuest.required);
-            }
-            
-            // Обновляем VIP статус
-            hasVipKey = u.vip_until && new Date(u.vip_until) > new Date();
-        }
-
-        async function usePromo() {
-            const codeInput = document.getElementById('promo-input');
-            const code = codeInput.value.trim().toUpperCase();
-            if(!code) return;
-            
-            const usedKey = `promo_${code}_${u.username}`;
-            if(localStorage.getItem(usedKey)) return alert("Вы уже использовали этот промокод!");
-            
-            const { data, error } = await sb.from('promo_codes').select('*').eq('code', code).single();
-            
-            if(error || !data) return alert("Промокод не найден!");
-            if(data.uses_left <= 0) return alert("Срок действия промокода истек!");
-            
-            await updateData(data.reward_bc, data.reward_xp);
-            await sb.from('promo_codes').update({ uses_left: data.uses_left - 1 }).eq('code', code);
-            
-            localStorage.setItem(usedKey, 'true');
-            codeInput.value = '';
-            showModal("ПРОМОКОД", `Активирован! Награда: ${data.reward_bc} BC и ${data.reward_xp} XP`);
-        }
-
-        function triggerBroadcast(sender, text) {
-            const el = document.getElementById('global-broadcast');
-            document.getElementById('broadcast-sender').innerText = sender;
-            document.getElementById('broadcast-text').innerText = text;
-            el.classList.add('show');
-            setTimeout(() => { el.classList.remove('show'); }, 15000);
-        }
-
-        async function claimPassReward() {
-            const lvl = Math.floor(u.xp / 1000) + 1;
-            
-            if (claimedLevels.includes(lvl)) {
-                alert("Вы уже получили награду за этот уровень!");
-                return;
-            }
-            
-            let reward = 0;
-            let keyType = null;
-            let keyName = '';
-            let caseName = '';
-            
-            // Расширенные награды за уровни
-            if (lvl >= 1 && lvl <= 10) {
-                reward = Math.floor(Math.random() * (50000 - 5000)) + 5000;
-            } else if (lvl >= 11 && lvl <= 19) {
-                reward = Math.floor(Math.random() * (100000 - 30000)) + 30000;
-            } else if (lvl === 20) {
-                reward = 150000;
-                hasGoldKey = true;
-                localStorage.setItem('gold_key_' + u.username, 'true');
-                keyType = 'gold';
-                keyName = 'Золотой ключ';
-                caseName = 'Золотой кейс';
-            } else if (lvl === 21 || lvl === 22) {
-                reward = Math.floor(Math.random() * (250000 - 100000)) + 100000;
-            } else if (lvl === 25) {
-                reward = 500000;
-                hasUltraKey = true;
-                localStorage.setItem('ultra_key_' + u.username, 'true');
-                keyType = 'ultra';
-                keyName = 'Ultra ключ';
-                caseName = 'Black Win Ultra';
-            } else if (lvl >= 26 && lvl <= 30) {
-                reward = Math.floor(Math.random() * (500000 - 200000)) + 200000;
-            } else if (lvl === 30) {
-                // VIP статус на 7 дней
-                const vipUntil = new Date();
-                vipUntil.setDate(vipUntil.getDate() + 7);
-                await sb.from('profiles').update({ 
-                    vip_until: vipUntil.toISOString() 
-                }).eq('username', u.username);
-                keyType = 'vip';
-                keyName = 'VIP статус';
-                caseName = 'VIP доступ на 7 дней';
-            } else if (lvl >= 31 && lvl <= 39) {
-                reward = Math.floor(Math.random() * (1000000 - 300000)) + 300000;
-            } else if (lvl === 40) {
-                reward = 1000000;
-                hasGoldKey = true;
-                hasUltraKey = true;
-                localStorage.setItem('gold_key_' + u.username, 'true');
-                localStorage.setItem('ultra_key_' + u.username, 'true');
-                keyType = 'both';
-                keyName = 'Два ключа';
-                caseName = 'Золотой кейс и Black Win Ultra';
-            } else if (lvl >= 41 && lvl <= 49) {
-                reward = Math.floor(Math.random() * (2000000 - 500000)) + 500000;
-            } else if (lvl === 50) {
-                reward = 5000000;
-                // VIP на месяц
-                const vipUntil = new Date();
-                vipUntil.setMonth(vipUntil.getMonth() + 1);
-                await sb.from('profiles').update({ 
-                    vip_until: vipUntil.toISOString() 
-                }).eq('username', u.username);
-                keyType = 'vip';
-                keyName = 'VIP статус';
-                caseName = 'VIP доступ на 1 месяц';
-            } else if (lvl > 50) {
-                reward = Math.floor(Math.random() * (3000000 - 1000000)) + 1000000;
-            }
-            
-            await saveClaimedLevel(lvl);
-            
-            if (reward > 0) {
-                await updateData(reward, 0);
-                showModal("BLACK PASS", `Вы получили награду: ${reward.toLocaleString()} BC!`);
-            } else if (keyType) {
-                if (keyType === 'vip') {
-                    showModal("VIP СТАТУС", `Вы получили VIP доступ! Теперь вы можете открывать VIP кейсы и получать бонусы!`);
+                if (maintenance && maintenance.value === 'true') {
+                    await sb.from('system_settings').update({ value: 'false' }).eq('key', 'maintenance');
+                    showCustomAlert('УСПЕХ', "Технические работы завершены");
                 } else {
-                    showKeyInstruction(keyName, caseName);
+                    await sb.from('system_settings').upsert([{
+                        key: 'maintenance',
+                        value: 'true',
+                        updated_at: new Date().toISOString()
+                    }]);
+                    showCustomAlert('УСПЕХ', "Технические работы включены");
                 }
-                updateUI();
-                renderCases();
-            } else {
-                updateUI();
+            } catch (error) {
+                console.error('Ошибка переключения режима тех работ:', error);
+                showCustomAlert('ОШИБКА', 'Ошибка переключения режима');
             }
         }
 
-        function showKeyInstruction(keyName, caseName) {
-            document.getElementById('key-title').innerText = `ВЫ ПОЛУЧИЛИ ${keyName.toUpperCase()}!`;
-            document.getElementById('key-message').innerText = `Вы получили ключ от ${caseName}! Чтобы активировать ключ зайдите в раздел "Кейсы" и нажмите на кейс "${caseName}" и вы получите его бесплатно! (1 ключ = 1 кейс)`;
-            document.getElementById('key-modal').classList.remove('hidden');
-        }
-
-        function showSection(n) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
-            document.getElementById('s-'+n).classList.add('active');
-            document.getElementById('n-'+n).classList.add('nav-active');
-            if(n === 'top') loadTop();
-            if(n === 'social') loadFriends();
-        }
-
-        async function updateData(b, x) {
-            // Применяем бонусы от ивентов
-            let bonusMultiplier = 1;
-            if (activeEvent) {
-                if (activeEvent.event_type === 'x2 BC' && b > 0) {
-                    bonusMultiplier = 2;
-                    b = b * bonusMultiplier;
-                } else if (activeEvent.event_type === 'x2 XP' && x > 0) {
-                    bonusMultiplier = 2;
-                    x = x * bonusMultiplier;
-                } else if (activeEvent.event_type === 'x2 WIN' && b > 0) {
-                    bonusMultiplier = 2;
-                    b = b * bonusMultiplier;
-                } else if (activeEvent.event_type === '50% BONUS' && b > 0) {
-                    bonusMultiplier = 1.5;
-                    b = Math.floor(b * bonusMultiplier);
-                }
-            }
-            
-            const { data } = await sb.from('profiles').update({ 
-                balance: u.balance + b, 
-                xp: u.xp + x 
-            }).eq('username', u.username).select().single();
-            
-            u = data; 
-            localStorage.setItem('bw_session', JSON.stringify(u));
-            updateUI();
-            
-            if (bonusMultiplier > 1 && (b !== 0 || x !== 0)) {
-                const bonusText = bonusMultiplier === 2 ? 'x2' : 'x1.5';
-                const bonusType = activeEvent.event_type;
-                showModal(`БОНУС ${bonusText}!`, `Активен ивент "${bonusType}". Ваша награда увеличена!`);
-            }
-        }
-
-        // === ИГРА УДАЧА 50/50 ===
-        function openBinaryModal() {
-            document.getElementById('binary-modal').classList.remove('hidden');
-        }
-
-        function closeBinaryModal() {
-            document.getElementById('binary-modal').classList.add('hidden');
-        }
-
-        function setQuickBet(amount) {
-            const input = document.getElementById('binary-bet-amount');
-            if (typeof amount === 'number') {
-                input.value = amount;
-            } else if (amount === 'half') {
-                input.value = Math.floor(u.balance / 2);
-            } else if (amount === 'max') {
-                input.value = Math.floor(u.balance * 0.8);
-            } else if (amount === 'all') {
-                input.value = u.balance;
-            } else if (amount === 'double') {
-                input.value = parseInt(input.value) * 2 || 100;
-            } else if (amount === 'clear') {
-                input.value = '';
-            }
-        }
-
-        async function playBinaryGame(choice) {
-            const betInput = document.getElementById('binary-bet-amount');
-            const betAmount = parseInt(betInput.value);
-            
-            if (!betAmount || betAmount <= 0) {
-                alert("Введите корректную сумму ставки!");
-                return;
-            }
-            
-            if (betAmount > u.balance) {
-                alert("Недостаточно BC для ставки!");
-                return;
-            }
-            
-            if (betAmount < 100) {
-                alert("Минимальная ставка: 100 BC!");
-                return;
-            }
-            
-            closeBinaryModal();
-            
-            const win = Math.random() > 0.5;
-            const userWin = (choice === 'red' && win) || (choice === 'black' && !win);
-            
-            if (userWin) {
-                await updateData(betAmount, 100);
-                showModal("ПОБЕДА!", `+${betAmount} BC! Вы угадали цвет!`);
-                updateQuestProgress('win_binary', betAmount);
-            } else {
-                await updateData(-betAmount, 20);
-                showModal("ПРОИГРЫШ", `-${betAmount} BC! Не повезло...`);
-            }
-            
-            updateQuestProgress('play_highlow', 1);
-            betInput.value = '';
-        }
-
-        // === ИГРА РУЛЕТКА X3 ===
-        function openRouletteModal() {
-            document.getElementById('roulette-modal').classList.remove('hidden');
-        }
-
-        function closeRouletteModal() {
-            document.getElementById('roulette-modal').classList.add('hidden');
-        }
-
-        function setQuickBetRoulette(amount) {
-            const input = document.getElementById('roulette-bet-amount');
-            if (typeof amount === 'number') {
-                input.value = amount;
-            } else if (amount === 'half') {
-                input.value = Math.floor(u.balance / 2);
-            } else if (amount === 'max') {
-                input.value = Math.floor(u.balance * 0.8);
-            } else if (amount === 'all') {
-                input.value = u.balance;
-            } else if (amount === 'double') {
-                input.value = parseInt(input.value) * 2 || 100;
-            } else if (amount === 'clear') {
-                input.value = '';
-            }
-        }
-
-        async function playRouletteGame(choice) {
-            const betInput = document.getElementById('roulette-bet-amount');
-            const betAmount = parseInt(betInput.value);
-            
-            if (!betAmount || betAmount <= 0) {
-                alert("Введите корректную сумму ставки!");
-                return;
-            }
-            
-            if (betAmount > u.balance) {
-                alert("Недостаточно BC для ставки!");
-                return;
-            }
-            
-            if (betAmount < 100) {
-                alert("Минимальная ставка: 100 BC!");
-                return;
-            }
-            
-            closeRouletteModal();
-            
-            const random = Math.random() * 100;
-            let result = '';
-            
-            if (random < 48) {
-                result = 'red';
-            } else if (random < 96) {
-                result = 'black';
-            } else {
-                result = 'green';
-            }
-            
-            let winMultiplier = 0;
-            let xpEarned = 0;
-            
-            if (choice === result) {
-                if (choice === 'green') {
-                    winMultiplier = 3;
-                    xpEarned = 200;
-                } else {
-                    winMultiplier = 2;
-                    xpEarned = 100;
-                }
-            }
-            
-            if (winMultiplier > 0) {
-                const winAmount = betAmount * winMultiplier;
-                await updateData(winAmount, xpEarned);
-                showModal("ВЫИГРЫШ!", `+${winAmount} BC (x${winMultiplier})! Результат: ${getColorName(result)}`);
-                updateQuestProgress('win_roulette', winAmount);
-            } else {
-                await updateData(-betAmount, 30);
-                showModal("ПРОИГРЫШ", `-${betAmount} BC! Выпало: ${getColorName(result)}`);
-            }
-            
-            betInput.value = '';
-        }
-
-        function getColorName(color) {
-            switch(color) {
-                case 'red': return 'КРАСНОЕ';
-                case 'black': return 'ЧЁРНОЕ';
-                case 'green': return 'ЗЕЛЁНОЕ';
-                default: return color;
-            }
-        }
-
-        // === НОВЫЕ ИГРЫ ===
-        async function playCoinFlip() {
-            const betAmount = prompt("Введите сумму ставки (мин. 100 BC):", "1000");
-            const amount = parseInt(betAmount);
-            
-            if (!amount || amount < 100 || amount > u.balance) {
-                alert("Некорректная сумма ставки!");
-                return;
-            }
-            
-            const userChoice = confirm("Выберите: ОК - Орел, ОТМЕНА - Решка") ? 'heads' : 'tails';
-            const result = Math.random() > 0.5 ? 'heads' : 'tails';
-            
-            if (userChoice === result) {
-                await updateData(amount, 80);
-                showModal("МОНЕТКА", `ПОБЕДА! Выпал ${result === 'heads' ? 'ОРЁЛ' : 'РЕШКА'}. +${amount} BC!`);
-            } else {
-                await updateData(-amount, 20);
-                showModal("МОНЕТКА", `ПРОИГРЫШ! Выпал ${result === 'heads' ? 'ОРЁЛ' : 'РЕШКА'}. -${amount} BC`);
-            }
-        }
-
-        async function playDice() {
-            const betAmount = prompt("Введите сумму ставки (мин. 100 BC):", "1000");
-            const amount = parseInt(betAmount);
-            
-            if (!amount || amount < 100 || amount > u.balance) {
-                alert("Некорректная сумма ставки!");
-                return;
-            }
-            
-            const userGuess = parseInt(prompt("Угадайте число от 1 до 6:", "3"));
-            
-            if (!userGuess || userGuess < 1 || userGuess > 6) {
-                alert("Некорректное число!");
-                return;
-            }
-            
-            const diceResult = Math.floor(Math.random() * 6) + 1;
-            
-            if (userGuess === diceResult) {
-                const winAmount = amount * 6;
-                await updateData(winAmount, 150);
-                showModal("КОСТИ", `ПОБЕДА! Выпало ${diceResult}. Вы угадали! +${winAmount} BC (x6)!`);
-            } else {
-                await updateData(-amount, 20);
-                showModal("КОСТИ", `ПРОИГРЫШ! Выпало ${diceResult}, вы выбрали ${userGuess}. -${amount} BC`);
-            }
-        }
-
-        // === СИСТЕМА ЗАДАНИЙ ===
-        function openQuestsModal() {
-            if (!questsData) {
-                alert("Загрузка заданий...");
-                return;
-            }
-            
-            renderQuests();
-            document.getElementById('quests-modal').classList.remove('hidden');
-        }
-
-        function closeQuestsModal() {
-            document.getElementById('quests-modal').classList.add('hidden');
-        }
-
-        function renderQuests() {
-            const container = document.getElementById('quests-list');
-            container.innerHTML = '';
-            
-            questsData.forEach(questData => {
-                const questInfo = QUESTS.find(q => q.id === questData.quest_id);
-                if (!questInfo) return;
-                
-                const progressPercent = (questData.progress / questInfo.required) * 100;
-                const progressText = questData.completed ? 'Выполнено' : `${questData.progress}/${questInfo.required}`;
-                
-                const questHTML = `
-                    <div class="quest-item ${questData.completed ? 'border-green-500' : ''}">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="font-bold text-sm">${questInfo.name}</h3>
-                            <span class="text-red-600 text-[10px] font-black">${questInfo.reward} XP</span>
-                        </div>
-                        <p class="text-gray-400 text-xs mb-3">${questInfo.description}</p>
-                        <div class="quest-progress">
-                            <div class="quest-progress-bar" style="width: ${Math.min(progressPercent, 100)}%"></div>
-                        </div>
-                        <div class="flex justify-between text-[10px] mt-2">
-                            <span class="${questData.completed ? 'text-green-500' : 'text-gray-400'}">${progressText}</span>
-                            <span class="${questData.completed ? 'text-green-500' : 'text-yellow-500'}">${questData.completed ? '✅ Награда получена' : 'В процессе'}</span>
-                        </div>
-                    </div>
-                `;
-                
-                container.innerHTML += questHTML;
-            });
-        }
-
-        function startQuestsTimer() {
-            if (!questsData || questsData.length === 0) return;
-            
-            const lastReset = new Date(questsData[0].last_reset);
-            const nextReset = new Date(lastReset.getTime() + 24 * 60 * 60 * 1000);
-            
-            function updateTimer() {
-                const now = new Date();
-                const diff = nextReset - now;
-                
-                if (diff <= 0) {
-                    document.getElementById('reset-timer').textContent = 'Сброс...';
-                    resetQuests();
-                    return;
-                }
-                
-                const hours = Math.floor(diff / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                
-                document.getElementById('reset-timer').textContent = 
-                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
-                setTimeout(updateTimer, 1000);
-            }
-            
-            updateTimer();
-        }
-
-        // === АНИМАЦИЯ ОТКРЫТИЯ КЕЙСА ===
-        function closeCaseOpening() {
-            document.getElementById('case-opening-modal').classList.add('hidden');
-        }
-
-        function showCaseOpening(prize, description) {
-            document.getElementById('case-prize-content').innerHTML = prize;
-            document.getElementById('case-prize-desc').textContent = description;
-            document.getElementById('case-opening-modal').classList.remove('hidden');
-        }
-
-        // === ОСТАЛЬНЫЕ ФУНКЦИИ ===
-        function startHL() {
-            const bet = parseInt(document.getElementById('hl-bet').value);
-            if(u.balance < bet) return alert("Мало BC");
-            hlBase = Math.floor(Math.random() * 80) + 10;
-            document.getElementById('hl-num').innerText = hlBase;
-            document.getElementById('hl-setup').classList.add('hidden');
-            document.getElementById('hl-action').classList.remove('hidden');
-        }
-
-        async function playHL(c) {
-            const bet = parseInt(document.getElementById('hl-bet').value);
-            const n = Math.floor(Math.random() * 100) + 1;
-            const win = (c === 'high' && n > hlBase) || (c === 'low' && n < hlBase);
-            await updateData(win ? bet : -bet, 150);
-            showModal(win ? "ПОБЕДА" : "ПРОИГРЫШ", `Число: ${n}. ${win ? '+'+bet : -bet} BC`);
-            document.getElementById('hl-num').innerText = '?';
-            document.getElementById('hl-setup').classList.remove('hidden');
-            document.getElementById('hl-action').classList.add('hidden');
-            
-            updateQuestProgress('play_highlow', 1);
-        }
-
-        async function bankAction(type) {
-            const val = prompt("Введите сумму:");
-            const amt = parseInt(val);
-            if(!amt || amt <= 0) return;
-            let nB = u.balance, nBK = u.bank_balance;
-            if(type === 'dep') {
-                if(amt > u.balance) return alert("Мало на руках");
-                nB -= amt; nBK += amt;
-                updateQuestProgress('deposit_bank', amt);
-            } else {
-                if(amt > u.bank_balance) return alert("Мало в банке");
-                nB += amt; nBK -= amt;
-            }
-            const { data } = await sb.from('profiles').update({ balance: nB, bank_balance: nBK }).eq('username', u.username).select().single();
-            u = data; 
-            localStorage.setItem('bw_session', JSON.stringify(u));
-            updateUI();
-        }
-
-        async function sendMessage() {
-            const txt = document.getElementById('chat-input').value.trim();
-            if(!txt || !activeFriend) return;
-            
-            // Проверка на мутед
-            const { data: muted } = await sb.from('muted_users')
-                .select('*')
-                .eq('username', u.username)
-                .gt('mute_until', new Date().toISOString())
-                .single();
-            
-            if (muted) {
-                alert(`Вы заглушены до ${new Date(muted.mute_until).toLocaleString()}. Причина: ${muted.reason}`);
-                return;
-            }
-            
-            await sb.from('messages').insert([{ sender: u.username, receiver: activeFriend, text: txt }]);
-            document.getElementById('chat-input').value = '';
-        }
-
-        async function loadMessages() {
-            const { data } = await sb.from('messages').select('*')
-                .or(`and(sender.eq.${u.username},receiver.eq.${activeFriend}),and(sender.eq.${activeFriend},receiver.eq.${u.username})`)
-                .order('created_at', { ascending: true });
-            const box = document.getElementById('chat-box');
-            box.innerHTML = data.map(m => `
-                <div class="flex ${m.sender === u.username ? 'justify-end' : 'justify-start'}">
-                    <div class="${m.sender === u.username ? 'bg-red-600' : 'bg-white/10'} p-3 rounded-2xl max-w-[80%] text-[10px]">
-                        <p class="font-bold mb-1 uppercase text-[7px] opacity-50">${m.sender}</p>
-                        <p>${m.text}</p>
-                    </div>
-                </div>`).join('');
-            box.scrollTop = box.scrollHeight;
-            
-            data.forEach(m => {
-                if (m.sender === 'СИСТЕМА' && m.text.includes('выдал вам ключ')) {
-                    document.getElementById('key-title').innerText = 'ВЫ ПОЛУЧИЛИ КЛЮЧ!';
-                    document.getElementById('key-message').innerText = m.text;
-                    document.getElementById('key-modal').classList.remove('hidden');
-                }
-            });
-        }
-
-        function openFriendMenu(name) {
-            activeFriend = name;
-            document.getElementById('active-friend-nick').innerText = name;
-            document.getElementById('friend-menu').classList.add('open');
-            loadMessages();
-        }
-        
-        function closeFriendMenu() { 
-            document.getElementById('friend-menu').classList.remove('open'); 
-            activeFriend = null; 
-        }
-
-        function renderCases() {
-            document.getElementById('case-list').innerHTML = CASES.map(c => {
-                let priceText = c.price.toLocaleString() + ' BC';
-                let keyInfo = '';
-                let canOpen = true;
-                let disabled = false;
-                
-                // Проверка VIP статуса
-                if (c.vipOnly && !hasVipKey) {
-                    canOpen = false;
-                    priceText = 'ТОЛЬКО ДЛЯ VIP';
-                    disabled = true;
-                }
-                
-                // Проверка уровня
-                if (c.minLevel) {
-                    const userLevel = Math.floor(u.xp / 1000) + 1;
-                    if (userLevel < c.minLevel) {
-                        canOpen = false;
-                        priceText = `ТРЕБУЕТСЯ ${c.minLevel} УРОВЕНЬ`;
-                        disabled = true;
-                    }
-                }
-                
-                // Проверка ключей
-                if (c.id === 'gold' && hasGoldKey && canOpen) {
-                    priceText = 'БЕСПЛАТНО (КЛЮЧ)';
-                    keyInfo = 'Есть ключ';
-                } else if (c.id === 'black' && hasUltraKey && canOpen) {
-                    priceText = 'БЕСПЛАТНО (КЛЮЧ)';
-                    keyInfo = 'Есть ключ';
-                } else if (c.id === 'vip' && hasVipKey && canOpen) {
-                    priceText = 'БЕСПЛАТНО (VIP)';
-                    keyInfo = 'VIP доступ';
-                }
-                
-                // Применяем скидку
-                let finalPrice = c.price;
-                if (c.discount > 0 && !keyInfo) {
-                    finalPrice = Math.floor(c.price * (100 - c.discount) / 100);
-                    priceText = `<s>${c.price.toLocaleString()} BC</s> ${finalPrice.toLocaleString()} BC`;
-                }
-                
-                return `
-                <div class="glass p-5 rounded-3xl flex justify-between items-center border-l-4 border-${c.color} relative">
-                    ${c.tag ? `<span class="case-tag case-${c.tag}">${c.tag.toUpperCase()}</span>` : ''}
-                    <div>
-                        <p class="font-black italic text-xs uppercase">${c.name}</p>
-                        <p class="text-red-600 text-[10px] font-bold">${priceText}</p>
-                        ${keyInfo ? `<p class="text-green-500 text-[8px] font-bold mt-1">${keyInfo}</p>` : ''}
-                        ${c.discount > 0 ? `<p class="text-yellow-500 text-[7px] font-bold">-${c.discount}%</p>` : ''}
-                    </div>
-                    <button onclick="openCase('${c.id}')" class="red-btn px-6 py-3 rounded-xl text-[10px] ${disabled ? 'opacity-50 cursor-not-allowed' : ''}" ${disabled ? 'disabled' : ''}>
-                        ${disabled ? 'ЗАБЛОКИРОВАНО' : 'ОТКРЫТЬ'}
-                    </button>
-                </div>`;
-            }).join('');
-        }
-
-        async function openCase(id) {
-            const c = CASES.find(x => x.id === id);
-            
-            // Проверка VIP статуса
-            if (c.vipOnly && !hasVipKey) {
-                alert("Этот кейс доступен только для VIP игроков!");
-                return;
-            }
-            
-            // Проверка уровня
-            if (c.minLevel) {
-                const userLevel = Math.floor(u.xp / 1000) + 1;
-                if (userLevel < c.minLevel) {
-                    alert(`Для открытия этого кейса требуется ${c.minLevel} уровень!`);
-                    return;
-                }
-            }
-            
-            let finalPrice = c.price;
-            let isUsingKey = false;
-            
-            // Проверяем ключи и скидки
-            if (c.id === 'gold' && hasGoldKey) { 
-                finalPrice = 0; 
-                isUsingKey = true; 
-            } else if (c.id === 'black' && hasUltraKey) { 
-                finalPrice = 0; 
-                isUsingKey = true; 
-            } else if (c.id === 'vip' && hasVipKey) { 
-                finalPrice = 0; 
-                isUsingKey = true; 
-            } else if (c.discount > 0) {
-                finalPrice = Math.floor(c.price * (100 - c.discount) / 100);
-            }
-            
-            if(u.balance < finalPrice) {
-                alert("Недостаточно BC");
-                return;
-            }
-            
-            const isWin = Math.random() < c.winRate;
-            let winB = 0;
-            let winXP = 0;
-            let prizeType = 'bc';
-            
-            if (isWin) {
-                winB = Math.floor(Math.random() * (c.maxB - c.minB)) + c.minB;
-                winXP = 300;
-                
-                // Особые награды для редких кейсов
-                if (c.id === 'black' && Math.random() < 0.05) {
-                    // Дополнительный ключ
-                    hasUltraKey = true;
-                    localStorage.setItem('ultra_key_' + u.username, 'true');
-                    prizeType = 'key';
-                } else if (c.id === 'vip' && Math.random() < 0.1) {
-                    // VIP статус
-                    const vipUntil = new Date();
-                    vipUntil.setMonth(vipUntil.getMonth() + 1);
-                    await sb.from('profiles').update({ 
-                        vip_until: vipUntil.toISOString() 
-                    }).eq('username', u.username);
-                    hasVipKey = true;
-                    prizeType = 'vip';
-                } else if (c.id === 'legendary' && Math.random() < 0.15) {
-                    winB *= 2; // Двойной выигрыш
-                }
-            } else {
-                winB = Math.floor(Math.random() * (finalPrice * 0.5));
-                winXP = 100;
-            }
-            
-            if (isUsingKey) {
-                if (c.id === 'gold') {
-                    hasGoldKey = false;
-                    localStorage.setItem('gold_key_' + u.username, 'false');
-                } else if (c.id === 'black') {
-                    hasUltraKey = false;
-                    localStorage.setItem('ultra_key_' + u.username, 'false');
-                } else if (c.id === 'vip') {
-                    // VIP ключ не расходуется при открытии VIP кейса
-                }
-                renderCases();
-            }
-            
-            await updateData(winB - finalPrice, winXP);
-            updateQuestProgress('open_cases', 1);
-            
-            // Показываем анимацию открытия
-            let prizeDisplay = '';
-            let prizeDesc = '';
-            
-            if (prizeType === 'key') {
-                prizeDisplay = '🔑';
-                prizeDesc = `КЛЮЧ ОТ ULTRA КЕЙСА! + ${winB.toLocaleString()} BC`;
-            } else if (prizeType === 'vip') {
-                prizeDisplay = '👑';
-                prizeDesc = `VIP СТАТУС НА МЕСЯЦ! + ${winB.toLocaleString()} BC`;
-            } else {
-                prizeDisplay = winB.toLocaleString() + ' BC';
-                prizeDesc = `Вы получили: ${winB.toLocaleString()} BC${winXP ? ' и ' + winXP + ' XP' : ''}! ${isWin ? 'ОКУП!' : 'НЕ ПОВЕЗЛО'}`;
-            }
-            
-            showCaseOpening(prizeDisplay, prizeDesc);
-        }
-
-        async function sendFriendReq() {
-            const to = document.getElementById('target-nick').value.trim().toUpperCase();
-            if(!to || to === u.username) return;
-            
-            const { data: targetExists } = await sb.from('profiles').select('username').eq('username', to).single();
-            if(!targetExists) {
-                alert("Игрок не найден!");
-                return;
-            }
-            
-            await sb.from('interactions').insert([{ from_user: u.username, to_user: to, type: 'friend_req' }]);
-            updateQuestProgress('add_friend', 1);
-            alert("Запрос в друзья отправлен!");
-        }
-
-        async function loadFriends() {
-            const { data } = await sb.from('friendships').select('*').or(`user1.eq.${u.username},user2.eq.${u.username}`);
-            document.getElementById('friends-list').innerHTML = data.map(f => {
-                const n = f.user1 === u.username ? f.user2 : f.user1;
-                return `<div class="glass p-4 rounded-2xl flex justify-between items-center">
-                    <span class="font-black text-sm uppercase">${n}</span>
-                    <button onclick="openFriendMenu('${n}')" class="red-btn px-4 py-2 rounded-xl text-[10px] font-black italic">СВЯЗЬ</button>
-                </div>`;
-            }).join('');
-        }
-
-        async function loadTop() {
-            const { data } = await sb.from('profiles').select('username, balance, xp, vip_until').order('balance', { ascending: false }).limit(15);
-            const box = document.getElementById('leaderboard');
-            
-            box.innerHTML = `
-                <div class="py-6 text-center">
-                    <h2 class="font-black text-2xl italic text-red-600 uppercase tracking-tighter">ТОП 15 БОГАТЫХ</h2>
-                    <p class="text-[9px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">ИГРОКОВ Black Win</p>
-                </div>
-            ` + data.map((it, i) => {
-                const lvl = Math.floor(it.xp / 1000) + 1;
-                const isVip = it.vip_until && new Date(it.vip_until) > new Date();
-                
-                return `
-                <div class="glass p-4 rounded-2xl flex justify-between items-center mb-2 border-r-2 ${i < 3 ? 'border-red-600' : 'border-transparent'} animate__animated animate__fadeInUp">
-                    <div class="flex items-center">
-                        <span class="font-black text-red-600 w-6 text-sm">#${i+1}</span>
-                        <div class="ml-4">
-                            <p class="font-bold uppercase text-xs leading-none">${it.username} ${isVip ? '👑' : ''}</p>
-                            <p class="text-[8px] text-gray-500 font-black mt-1 uppercase tracking-wider">Level: <span class="text-white">${lvl}</span></p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="font-black italic text-white text-sm">${it.balance.toLocaleString()}</span>
-                        <span class="text-[8px] font-black text-red-600 ml-1 italic">BC</span>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        function initRealtime() {
-            sb.channel('global')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
-                if(activeFriend && (p.new.sender === activeFriend || p.new.receiver === activeFriend)) loadMessages();
-                
-                if (p.new.sender === 'СИСТЕМА' && p.new.receiver === u.username && p.new.text.includes('выдал вам ключ')) {
-                    document.getElementById('key-title').innerText = 'ВЫ ПОЛУЧИЛИ КЛЮЧ!';
-                    document.getElementById('key-message').innerText = p.new.text;
-                    document.getElementById('key-modal').classList.remove('hidden');
-                    
-                    if (p.new.text.includes('Золотой кейс')) {
-                        hasGoldKey = true;
-                        localStorage.setItem('gold_key_' + u.username, 'true');
-                    } else if (p.new.text.includes('Ultra кейс') || p.new.text.includes('Black Win Ultra')) {
-                        hasUltraKey = true;
-                        localStorage.setItem('ultra_key_' + u.username, 'true');
-                    } else if (p.new.text.includes('VIP')) {
-                        hasVipKey = true;
-                    }
-                    renderCases();
-                }
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interactions' }, async p => {
-                const r = p.new;
-                if(r.to_user !== u.username) return;
-                if(r.type === 'friend_req') {
-                    if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
-                        await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
-                        loadFriends();
-                    }
-                }
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_alerts' }, p => {
-                triggerBroadcast(p.new.sender, p.new.message);
-            })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, p => {
-                if (u && p.new.username === u.username) {
-                    u = p.new;
-                    localStorage.setItem('bw_session', JSON.stringify(u));
-                    checkBanStatus();
-                    updateUI();
-                }
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'active_events' }, async p => {
-                await loadActiveEvent();
-            })
-            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'active_events' }, async p => {
-                if (activeEvent && activeEvent.id === p.old.id) {
-                    activeEvent = null;
-                    hideEventIndicator();
-                }
-            })
-            .subscribe();
-        }
-
+        // === УТИЛИТЫ ===
         function showModal(t, d) {
             document.getElementById('modal-title').innerText = t;
             document.getElementById('modal-desc').innerText = d;
@@ -2372,6 +3073,64 @@
         function closeModal() { 
             document.getElementById('game-modal').classList.add('hidden'); 
         }
+
+        // Защита от множественных кликов
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Применяем debounce к критичным функциям
+        const debouncedClaimPassReward = debounce(claimPassReward, 1000);
+        const debouncedPlayBinaryGame = debounce(playBinaryGame, 1000);
+        const debouncedPlayRouletteGame = debounce(playRouletteGame, 1000);
+        const debouncedOpenCase = debounce(openCase, 1000);
+
+        // Переопределяем функции с защитой
+        window.claimPassReward = debouncedClaimPassReward;
+        window.playBinaryGame = debouncedPlayBinaryGame;
+        window.playRouletteGame = debouncedPlayRouletteGame;
+        window.openCase = debouncedOpenCase;
+
+        // Инициализация при загрузке
+        window.addEventListener('load', () => {
+            console.log('Black Win v2.0 loaded');
+            
+            // Сохраняем метку времени первого посещения
+            if (!localStorage.getItem('first_visit')) {
+                localStorage.setItem('first_visit', Date.now().toString());
+            }
+            
+            // Защита от повторных наград
+            const now = Date.now();
+            const lastReward = localStorage.getItem('last_reward_time');
+            if (lastReward && now - parseInt(lastReward) < 60000) {
+                lastClaimTime = parseInt(lastReward);
+            }
+        });
+
+        // Очистка при разгрузке страницы
+        window.addEventListener('beforeunload', () => {
+            if (realtimeSubscription) {
+                realtimeSubscription.unsubscribe();
+            }
+            
+            if (eventInterval) {
+                clearInterval(eventInterval);
+            }
+            
+            if (eventPollInterval) {
+                clearInterval(eventPollInterval);
+            }
+        });
+
     </script>
 </body>
 </html>
