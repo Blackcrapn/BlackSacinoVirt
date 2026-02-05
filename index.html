@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Black Win | Elite Fixed</title>
+    <title>Black Win | Fixed</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -34,11 +34,9 @@
         }
         #global-broadcast.show { top: 20px; }
         
-        /* Стили админ-панели */
         .admin-cmd-list { font-size: 10px; text-align: left; color: #888; background: #000; padding: 10px; border-radius: 15px; margin-top: 10px; }
         .admin-cmd-list b { color: #ff0000; }
         
-        /* Стили для модальных окон игр */
         .game-modal-bg {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.95); z-index: 1000;
@@ -65,7 +63,6 @@
         }
         .quick-bet-btn:active { transform: scale(0.95); }
         
-        /* Стили для заданий */
         .quest-item {
             background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
             border: 1px solid rgba(255, 0, 0, 0.2);
@@ -82,7 +79,6 @@
             transition: width 0.3s;
         }
         
-        /* Индикатор ивента в хедере */
         #event-indicator {
             position: fixed; top: 80px; left: 15px;
             background: linear-gradient(90deg, rgba(255, 0, 0, 0.9), rgba(255, 50, 0, 0.9));
@@ -102,23 +98,12 @@
             letter-spacing: 0.5px;
         }
 
-        @media (max-width: 768px) {
-            #event-indicator {
-                top: 70px;
-                left: 10px;
-                font-size: 11px;
-                padding: 8px 12px;
-                min-width: 130px;
-            }
-        }
-
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); transform: scale(1); }
             50% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); transform: scale(1.05); }
             100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); transform: scale(1); }
         }
 
-        /* Новые стили для кейсов */
         .case-tag {
             position: absolute; top: 10px; right: 10px;
             padding: 2px 8px; border-radius: 10px;
@@ -128,7 +113,6 @@
         .case-new { background: #00ff00; color: #000; }
         .case-limited { background: #FFD700; color: #000; }
 
-        /* Система рефералов */
         .referral-box {
             background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
             border: 1px solid rgba(0, 255, 255, 0.2);
@@ -137,7 +121,6 @@
             margin: 10px 0;
         }
         
-        /* Модальное окно кейса */
         .case-open-animation {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.98); z-index: 2000;
@@ -156,30 +139,26 @@
             50% { box-shadow: 0 0 40px rgba(255, 0, 0, 0.6); }
         }
         
-        /* Кастомные уведомления */
-        .custom-notification {
-            position: fixed; top: 20px; right: 20px; 
+        .alert-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.95); z-index: 5000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .alert-content {
             background: linear-gradient(135deg, #0f0f0f 0%, #000 100%);
             border: 2px solid #ff0000;
-            border-radius: 20px;
-            padding: 15px;
-            max-width: 300px;
-            z-index: 3000;
-            animation: slideInRight 0.3s ease-out;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border-radius: 30px;
+            padding: 30px;
+            width: 90%; max-width: 400px;
+            text-align: center;
         }
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        .confirm-buttons {
+            display: flex; gap: 10px; margin-top: 20px;
         }
-        
-        /* Лидерборд исправления */
-        .leaderboard-item {
-            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-            border: 1px solid rgba(255, 0, 0, 0.2);
-            border-radius: 15px;
-            padding: 12px;
-            margin-bottom: 8px;
+        .confirm-buttons button {
+            flex: 1; padding: 15px; border-radius: 15px;
+            font-weight: 900; text-transform: uppercase;
         }
     </style>
 </head>
@@ -196,16 +175,24 @@
         <span id="event-type-text"></span> - <span id="event-timer">00:00</span>
     </div>
 
-    <!-- Оверлей бана -->
-    <div id="ban-overlay" class="fixed inset-0 z-[5000] bg-black flex items-center justify-center p-6 hidden">
-        <div class="glass p-10 rounded-[40px] w-full max-w-sm text-center border-2 border-red-600 animate__animated animate__pulse animate__infinite">
-            <h2 class="font-black text-3xl mb-4 text-red-600 italic">ВЫ ЗАБЛОКИРОВАНЫ</h2>
-            <p class="text-gray-400 text-sm mb-2 uppercase font-bold">Администрацией проекта</p>
-            <div class="bg-red-600/10 p-4 rounded-2xl mb-6">
-                <p class="text-[10px] text-red-500 font-black uppercase mb-1">Причина:</p>
-                <p id="ban-reason-text" class="text-white font-bold italic"></p>
+    <!-- Модальное окно алерта -->
+    <div id="alert-modal" class="alert-modal hidden">
+        <div class="alert-content">
+            <h2 id="alert-title" class="font-black text-2xl mb-4 text-red-600 italic"></h2>
+            <p id="alert-text" class="text-gray-300 mb-6"></p>
+            <button onclick="closeAlert()" class="red-btn w-full py-4 rounded-xl">ОК</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения -->
+    <div id="confirm-modal" class="alert-modal hidden">
+        <div class="alert-content">
+            <h2 id="confirm-title" class="font-black text-2xl mb-4 text-red-600 italic"></h2>
+            <p id="confirm-text" class="text-gray-300 mb-6"></p>
+            <div class="confirm-buttons">
+                <button onclick="confirmAction(false)" class="bg-gray-800">НЕТ</button>
+                <button onclick="confirmAction(true)" class="red-btn">ДА</button>
             </div>
-            <p class="text-[9px] text-gray-600 uppercase">Если вы не согласны с решением, обратитесь в поддержку.</p>
         </div>
     </div>
 
@@ -233,7 +220,7 @@
         <div class="game-modal">
             <button onclick="closeBinaryModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
             <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">УДАЧА 50/50</h2>
-            <p class="text-center text-gray-400 text-sm mb-4">Шанс выигрыша: 50%</p>
+            <p class="text-center text-gray-400 text-sm mb-4">Шанс выигрыша: 49.5%</p>
             <p class="text-center text-gray-400 text-sm mb-6">Выигрыш: x2 от ставки</p>
             
             <input type="number" id="binary-bet-amount" placeholder="СУММА СТАВКИ" class="bet-input" min="1" :max="u?.balance || 0">
@@ -265,8 +252,8 @@
         <div class="game-modal">
             <button onclick="closeRouletteModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
             <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">РУЛЕТКА X3</h2>
-            <p class="text-center text-gray-400 text-sm mb-4">Шанс выигрыша: 33%</p>
-            <p class="text-center text-gray-400 text-sm mb-6">Выигрыш: x3 от ставки</p>
+            <p class="text-center text-gray-400 text-sm mb-4">Шанс выигрыша: 32.3% (1-зеленый 2%)</p>
+            <p class="text-center text-gray-400 text-sm mb-6">Выигрыш: x2 (красное/черное), x3 (зеленое)</p>
             
             <input type="number" id="roulette-bet-amount" placeholder="СУММА СТАВКИ" class="bet-input" min="1" :max="u?.balance || 0">
             
@@ -318,7 +305,7 @@
         </div>
     </div>
 
-    <!-- Модальное окно реферальной системы (ИСПРАВЛЕНО) -->
+    <!-- Модальное окно реферальной системы -->
     <div id="referral-modal" class="game-modal-bg hidden">
         <div class="game-modal">
             <button onclick="closeReferralModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
@@ -327,10 +314,17 @@
             <div class="referral-box mb-6">
                 <p class="text-[10px] text-gray-500 font-bold mb-2">ВАШ РЕФЕРАЛЬНЫЙ КОД:</p>
                 <div class="flex gap-2">
-                    <input type="text" id="referral-code" readonly class="flex-1 p-3 rounded-xl text-[10px] font-bold text-center" value="Загрузка...">
+                    <input type="text" id="referral-code" readonly class="flex-1 p-3 rounded-xl text-[10px] font-black text-center" value="Загрузка...">
                     <button onclick="copyReferralCode()" class="red-btn px-4 rounded-xl text-xs">КОПИРОВАТЬ</button>
                 </div>
-                <p class="text-[8px] text-gray-500 mt-2">Дайте этот код друзьям при регистрации</p>
+            </div>
+            
+            <div class="referral-box mb-6">
+                <p class="text-[10px] text-gray-500 font-bold mb-2">ВАША РЕФЕРАЛЬНАЯ ССЫЛКА:</p>
+                <div class="flex gap-2">
+                    <input type="text" id="referral-link" readonly class="flex-1 p-3 rounded-xl text-[10px]" value="Загрузка...">
+                    <button onclick="copyReferralLink()" class="red-btn px-4 rounded-xl text-xs">КОПИРОВАТЬ</button>
+                </div>
             </div>
             
             <div class="glass p-4 rounded-2xl mb-6">
@@ -347,9 +341,9 @@
             </div>
             
             <div class="mb-6">
-                <p class="text-[10px] text-gray-500 font-bold mb-2">ВАШИ РЕФЕРАЛЫ:</p>
-                <div id="referral-list" class="space-y-2 max-h-40 overflow-y-auto pr-2">
-                    <p class="text-gray-500 text-center text-xs">Загрузка...</p>
+                <h3 class="text-[10px] font-black text-gray-500 uppercase mb-3">ВАШИ РЕФЕРАЛЫ:</h3>
+                <div id="referrals-list" class="space-y-2 max-h-40 overflow-y-auto">
+                    <!-- Список рефералов будет здесь -->
                 </div>
             </div>
             
@@ -364,36 +358,30 @@
         </div>
     </div>
 
-    <!-- Модальное окно пополнения (ИСПРАВЛЕНО) -->
-    <div id="deposit-modal" class="game-modal-bg hidden">
+    <!-- Модальное окно с выводом -->
+    <div id="withdraw-modal" class="game-modal-bg hidden">
         <div class="game-modal">
-            <button onclick="closeDepositModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
-            <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">ПОПОЛНЕНИЕ БАЛАНСА</h2>
+            <button onclick="closeWithdrawModal()" class="absolute top-4 right-4 text-gray-500 text-xl font-black">✕</button>
+            <h2 class="font-black text-2xl text-center text-red-600 mb-6 italic">ВЫВОД СРЕДСТВ</h2>
             
             <div class="glass p-6 rounded-2xl mb-6">
-                <p class="text-[10px] text-gray-500 mb-4 text-center">Для пополнения баланса свяжитесь с администратором:</p>
+                <p class="text-[10px] text-gray-500 mb-4">Минимальная сумма вывода: <span class="text-red-600 font-bold">50.000 BC</span></p>
                 
-                <div class="bg-green-600/20 p-4 rounded-2xl mb-4 text-center">
-                    <p class="text-sm font-bold">Telegram:</p>
-                    <p class="text-lg font-black mt-2">@BlackWinSupport_bot</p>
-                    <button onclick="copyToClipboard('@BlackWinSupport_bot')" class="red-btn mt-3 px-4 py-2 rounded-xl text-xs">СКОПИРОВАТЬ</button>
-                </div>
+                <input type="number" id="withdraw-amount" placeholder="СУММА ВЫВОДА" class="bet-input mb-4" min="50000">
                 
-                <div class="grid grid-cols-3 gap-2 mb-4">
-                    <button onclick="setDepositAmount(10000)" class="bg-white/5 p-3 rounded-xl text-[10px]">10.000 BC</button>
-                    <button onclick="setDepositAmount(50000)" class="bg-white/5 p-3 rounded-xl text-[10px]">50.000 BC</button>
-                    <button onclick="setDepositAmount(100000)" class="bg-white/5 p-3 rounded-xl text-[10px]">100.000 BC</button>
-                    <button onclick="setDepositAmount(500000)" class="bg-white/5 p-3 rounded-xl text-[10px]">500.000 BC</button>
-                    <button onclick="setDepositAmount(1000000)" class="bg-white/5 p-3 rounded-xl text-[10px]">1.000.000 BC</button>
-                    <button onclick="setDepositAmount(5000000)" class="bg-white/5 p-3 rounded-xl text-[10px]">5.000.000 BC</button>
-                </div>
+                <select id="withdraw-method" class="w-full p-4 rounded-2xl bg-[#151515] border border-[#333] text-white mb-4">
+                    <option value="qiwi">QIWI Кошелек</option>
+                    <option value="card">Банковская карта</option>
+                    <option value="yoomoney">ЮMoney</option>
+                    <option value="crypto">Криптовалюта (USDT)</option>
+                </select>
                 
-                <input type="number" id="deposit-amount" placeholder="СУММА ПОПОЛНЕНИЯ" class="bet-input" min="1000" value="10000">
+                <input type="text" id="withdraw-details" placeholder="НОМЕР КОШЕЛЬКА / КАРТЫ" class="w-full p-4 rounded-2xl bg-[#151515] border border-[#333] text-white">
             </div>
             
-            <button onclick="startDeposit()" class="red-btn w-full py-4 rounded-2xl">СВЯЗАТЬСЯ С АДМИНИСТРАТОРОМ</button>
+            <button onclick="submitWithdraw()" class="red-btn w-full py-4 rounded-2xl">ПОДАТЬ ЗАЯВКУ</button>
             
-            <p class="text-[8px] text-gray-500 text-center mt-4">Пополнение обрабатывается в течение 15 минут</p>
+            <p class="text-[8px] text-gray-500 text-center mt-4">Заявки обрабатываются в течение 24 часов</p>
         </div>
     </div>
 
@@ -438,20 +426,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Меню друга -->
-    <div id="friend-menu" class="friend-sidebar fixed top-0 right-0 w-80 h-full bg-black/95 z-[400] border-l border-red-600/20 p-6 flex flex-col">
-        <div class="flex justify-between items-center mb-6">
-            <h3 id="active-friend-nick" class="font-black text-red-600 italic uppercase">НИК</h3>
-            <button onclick="closeFriendMenu()" class="text-gray-500 font-black">✕</button>
-        </div>
-        <div id="chat-box" class="chat-area space-y-3 mb-4 pr-2"></div>
-        <div class="flex gap-2 mb-6">
-            <input type="text" id="chat-input" placeholder="Сообщение..." class="flex-1 p-3 rounded-xl text-[10px]">
-            <button onclick="sendMessage()" class="red-btn px-4 rounded-xl font-bold">></button>
-        </div>
-        <button onclick="closeFriendMenu()" class="w-full border border-white/10 py-4 rounded-2xl text-[10px] font-black uppercase">НАЗАД</button>
     </div>
 
     <!-- Экран авторизации -->
@@ -539,13 +513,13 @@
         <section id="s-store" class="section space-y-4">
             <h2 class="font-black text-center text-xl py-4 italic uppercase">МАГАЗИН КЕЙСОВ</h2>
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="openDepositModal()" class="gold-btn p-4 rounded-2xl text-center">
-                    <p class="text-[9px] font-black uppercase mb-1">ПОПОЛНИТЬ</p>
-                    <p class="text-[7px] text-gray-300">Пополни баланс</p>
+                <button onclick="openWithdrawModal()" class="gold-btn p-4 rounded-2xl text-center">
+                    <p class="text-[9px] font-black uppercase mb-1">ВЫВОД</p>
+                    <p class="text-[7px] text-gray-300">Получи реальные деньги!</p>
                 </button>
                 <button onclick="showSection('bank')" class="vip-btn p-4 rounded-2xl text-center">
-                    <p class="text-[9px] font-black uppercase mb-1">БАНК</p>
-                    <p class="text-[7px] text-gray-300">Вклады и снятия</p>
+                    <p class="text-[9px] font-black uppercase mb-1">ПОПОЛНИТЬ</p>
+                    <p class="text-[7px] text-gray-300">Пополни баланс</p>
                 </button>
             </div>
             <div id="case-list" class="space-y-3"></div>
@@ -567,6 +541,20 @@
                 <input type="text" id="promo-input" placeholder="ПРОМОКОД" class="w-full p-4 rounded-2xl font-black uppercase mb-4 border border-red-600/20">
                 <button onclick="usePromo()" class="red-btn w-full py-4 rounded-xl text-xs">АКТИВИРОВАТЬ</button>
             </div>
+
+            <!-- Система донатов -->
+            <div class="glass p-6 rounded-[35px] text-center">
+                <h3 class="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-widest">ПОПОЛНЕНИЕ БАЛАНСА</h3>
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <button onclick="addBalance(10000)" class="bg-white/5 p-3 rounded-xl text-[10px]">10.000 BC</button>
+                    <button onclick="addBalance(50000)" class="bg-white/5 p-3 rounded-xl text-[10px]">50.000 BC</button>
+                    <button onclick="addBalance(100000)" class="bg-white/5 p-3 rounded-xl text-[10px]">100.000 BC</button>
+                    <button onclick="addBalance(500000)" class="bg-white/5 p-3 rounded-xl text-[10px]">500.000 BC</button>
+                    <button onclick="addBalance(1000000)" class="bg-white/5 p-3 rounded-xl text-[10px]">1.000.000 BC</button>
+                    <button onclick="addBalance(5000000)" class="bg-white/5 p-3 rounded-xl text-[10px]">5.000.000 BC</button>
+                </div>
+                <p class="text-[8px] text-gray-500">Для пополнения свяжитесь с администратором</p>
+            </div>
         </section>
 
         <!-- Секция социального -->
@@ -579,17 +567,9 @@
             <div id="friends-list" class="space-y-2"></div>
         </section>
 
-        <!-- Секция топа (ИСПРАВЛЕНО) -->
-        <section id="s-top" class="section space-y-4">
-            <div class="glass p-6 rounded-[35px] text-center">
-                <h2 class="font-black text-xl mb-4 italic text-red-600">🏆 ЛИДЕРБОРД</h2>
-                <div class="flex justify-around mb-4">
-                    <button onclick="showLeaderboard('balance')" class="red-btn px-4 py-2 rounded-xl text-[10px]">БОГАТЫЕ</button>
-                    <button onclick="showLeaderboard('xp')" class="bg-white/10 px-4 py-2 rounded-xl text-[10px]">ОПЫТ</button>
-                    <button onclick="showLeaderboard('referrals')" class="bg-white/10 px-4 py-2 rounded-xl text-[10px]">РЕФЕРАЛЫ</button>
-                </div>
-                <div id="leaderboard" class="space-y-2"></div>
-            </div>
+        <!-- Секция топа -->
+        <section id="s-top" class="section space-y-2">
+            <div id="leaderboard" class="space-y-2"></div>
         </section>
 
         <!-- Секция администратора -->
@@ -642,7 +622,7 @@
 
     <script>
         const SB_URL = 'https://xlrzjpzcqnjdtbuuovvz.supabase.co';
-        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhscnpqcHpjcW5qZHRidXVvdnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwMjY1MjgsImV4cCI6MjA1MDYwMjUyOH0.0QTr0e8LlH2Vjl9gU0p5R6Ld8p6XJ7Q4R3V5yW6V7kY';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhscnpqcHpjcW5qZHRidXVvdnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU3ODA2ODksImV4cCI6MjA1MTM1NjY4OX0.INk5NHZ_cOGjC3c3dNQ85qIA-Fq3JLG3wZRSrjZb3PI';
         const sb = supabase.createClient(SB_URL, SB_KEY);
 
         let u = null, activeFriend = null, hlBase = 0;
@@ -654,23 +634,23 @@
         let activeEvent = null;
         let eventInterval = null;
         let eventPollInterval = null;
+        let referralCode = '';
         let referrals = [];
-        let leaderboardType = 'balance';
+        let confirmResolve = null;
 
-        // Расширенный список кейсов с СРЕДНИМИ шансами для экономики
+        // Обновленные шансы для экономики (средние значения)
         const CASES = [
-            { id: 'starter', name: 'Стартовый', price: 5000, color: 'gray-600', minB: 100, maxB: 10000, winRate: 0.35, tag: 'new', discount: 0 },
-            { id: 'bronze', name: 'Бронзовый', price: 15000, color: 'orange-800', minB: 1000, maxB: 20000, winRate: 0.32, tag: null, discount: 0 },
-            { id: 'silver', name: 'Серебряный', price: 50000, color: 'slate-400', minB: 5000, maxB: 75000, winRate: 0.30, tag: null, discount: 10 },
-            { id: 'gold', name: 'Золотой', price: 150000, color: 'yellow-500', minB: 20000, maxB: 150000, winRate: 0.28, tag: 'limited', discount: 15 },
-            { id: 'platinum', name: 'Платиновый', price: 500000, color: 'blue-400', minB: 100000, maxB: 500000, winRate: 0.25, tag: null, discount: 20 },
-            { id: 'diamond', name: 'Алмазный', price: 1000000, color: 'cyan-400', minB: 300000, maxB: 1000000, winRate: 0.22, tag: 'limited', discount: 25 },
-            { id: 'vip', name: 'VIP Кейс', price: 2500000, color: 'purple-600', minB: 500000, maxB: 2000000, winRate: 0.20, tag: 'vip', discount: 30, vipOnly: true },
-            { id: 'legendary', name: 'Легендарный', price: 5000000, color: 'red-600', minB: 1000000, maxB: 5000000, winRate: 0.18, tag: 'legendary', discount: 35, minLevel: 20 },
-            { id: 'black', name: 'Black Win Ultra', price: 10000000, color: 'white', minB: 2000000, maxB: 8000000, winRate: 0.15, tag: 'ultra', discount: 40, minLevel: 30, minXP: 5000 }
+            { id: 'starter', name: 'Стартовый', price: 5000, color: 'gray-600', minB: 100, maxB: 10000, winRate: 0.7, tag: 'new', discount: 0 },
+            { id: 'bronze', name: 'Бронзовый', price: 15000, color: 'orange-800', minB: 1000, maxB: 20000, winRate: 0.65, tag: null, discount: 0 },
+            { id: 'silver', name: 'Серебряный', price: 50000, color: 'slate-400', minB: 5000, maxB: 75000, winRate: 0.6, tag: null, discount: 10 },
+            { id: 'gold', name: 'Золотой', price: 150000, color: 'yellow-500', minB: 20000, maxB: 300000, winRate: 0.55, tag: 'limited', discount: 15 },
+            { id: 'platinum', name: 'Платиновый', price: 500000, color: 'blue-400', minB: 100000, maxB: 1000000, winRate: 0.5, tag: null, discount: 20 },
+            { id: 'diamond', name: 'Алмазный', price: 1000000, color: 'cyan-400', minB: 300000, maxB: 2000000, winRate: 0.45, tag: 'limited', discount: 25 },
+            { id: 'vip', name: 'VIP Кейс', price: 2500000, color: 'purple-600', minB: 500000, maxB: 5000000, winRate: 0.4, tag: 'vip', discount: 30, vipOnly: true },
+            { id: 'legendary', name: 'Легендарный', price: 5000000, color: 'red-600', minB: 1000000, maxB: 10000000, winRate: 0.35, tag: 'legendary', discount: 35, minLevel: 20 },
+            { id: 'black', name: 'Black Win Ultra', price: 10000000, color: 'white', minB: 2000000, maxB: 20000000, winRate: 0.3, tag: 'ultra', discount: 40, minLevel: 30, minXP: 5000 }
         ];
 
-        // Расширенные задания
         const QUESTS = [
             { id: 'daily_login', name: 'Ежедневный вход', description: 'Зайти в игру 3 дня подряд', required: 3, reward: 5000, type: 'daily' },
             { id: 'win_roulette', name: 'Победить в Рулетке', description: 'Выиграть 500.000BC в Рулетке x3', required: 500000, reward: 10000, type: 'win_roulette' },
@@ -684,6 +664,34 @@
             { id: 'vip_status', name: 'Получить VIP', description: 'Получить VIP статус', required: 1, reward: 100000, type: 'vip_status' }
         ];
 
+        // Функции для кастомных алертов
+        function showAlert(title, text) {
+            document.getElementById('alert-title').textContent = title;
+            document.getElementById('alert-text').textContent = text;
+            document.getElementById('alert-modal').classList.remove('hidden');
+        }
+
+        function closeAlert() {
+            document.getElementById('alert-modal').classList.add('hidden');
+        }
+
+        function showConfirm(title, text) {
+            return new Promise((resolve) => {
+                confirmResolve = resolve;
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-text').textContent = text;
+                document.getElementById('confirm-modal').classList.remove('hidden');
+            });
+        }
+
+        function confirmAction(result) {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            if (confirmResolve) {
+                confirmResolve(result);
+                confirmResolve = null;
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             const saved = localStorage.getItem('bw_session');
             if(saved) {
@@ -691,29 +699,6 @@
                 startSession();
             }
         });
-
-        // Кастомные уведомления
-        function showCustomNotification(title, message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = 'custom-notification';
-            notification.innerHTML = `
-                <div class="flex items-start">
-                    <div class="mr-3">
-                        <span class="text-red-600 text-lg">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
-                    </div>
-                    <div>
-                        <p class="font-bold text-sm mb-1">${title}</p>
-                        <p class="text-xs text-gray-300">${message}</p>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideInRight 0.3s ease-out reverse';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
 
         async function refreshUserData() {
             if (!u) return;
@@ -742,11 +727,11 @@
             const ref = document.getElementById('auth-ref').value.trim().toUpperCase();
             
             if(!n || !p) {
-                showCustomNotification('Ошибка', 'Заполните все поля');
+                showAlert("Ошибка", "Заполните все поля");
                 return;
             }
             if(n.length < 3 || n.length > 12) {
-                showCustomNotification('Ошибка', 'Никнейм должен быть от 3 до 12 символов');
+                showAlert("Ошибка", "Никнейм должен быть от 3 до 12 символов");
                 return;
             }
             
@@ -764,10 +749,10 @@
                     
                     startSession(); 
                 }
-                else showCustomNotification('Ошибка', 'Неверный пароль');
+                else showAlert("Ошибка", "Неверный пароль");
             } else {
                 // Генерация реферального кода
-                const referralCode = generateReferralCode();
+                referralCode = generateReferralCode();
                 
                 const newUser = {
                     username: n, 
@@ -785,15 +770,10 @@
                     daily_streak: 0,
                     last_login: new Date().toISOString(),
                     referral_count: 0,
-                    referral_earnings: 0
+                    referral_earned: 0
                 };
                 
-                const { data: nU, error } = await sb.from('profiles').insert([newUser]).select().single();
-                if(error) {
-                    showCustomNotification('Ошибка', 'Не удалось создать аккаунт');
-                    return;
-                }
-                
+                const { data: nU } = await sb.from('profiles').insert([newUser]).select().single();
                 u = nU; 
                 localStorage.setItem('bw_session', JSON.stringify(u));
                 
@@ -807,7 +787,12 @@
         }
 
         function generateReferralCode() {
-            return Math.floor(1000000 + Math.random() * 9000000).toString();
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for(let i = 0; i < 7; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
         }
 
         async function processReferral(refCode) {
@@ -817,7 +802,7 @@
                 await sb.from('profiles').update({ 
                     balance: referrer.balance + 5000,
                     referral_count: (referrer.referral_count || 0) + 1,
-                    referral_earnings: (referrer.referral_earnings || 0) + 5000
+                    referral_earned: (referrer.referral_earned || 0) + 5000
                 }).eq('username', referrer.username);
                 
                 // Отмечаем что реферал использован
@@ -830,10 +815,37 @@
                     referrer: referrer.username,
                     referred: u.username,
                     bonus_amount: 5000,
+                    type: 'invite',
                     date: new Date().toISOString()
                 }]);
+
+                // Обновляем UI реферера в реальном времени
+                if (referrer.username === u.username) {
+                    await loadReferralStats();
+                }
+            }
+        }
+
+        async function addReferralCommission(referredUser, amount) {
+            const { data: referrer } = await sb.from('profiles')
+                .select('username, balance, referral_earned')
+                .eq('username', referredUser.referred_by)
+                .single();
+            
+            if (referrer && amount > 0) {
+                const commission = Math.floor(amount * 0.01);
+                await sb.from('profiles').update({ 
+                    balance: referrer.balance + commission,
+                    referral_earned: (referrer.referral_earned || 0) + commission
+                }).eq('username', referrer.username);
                 
-                showCustomNotification('Реферал', 'Вы получили 5.000 BC за приглашение друга!');
+                await sb.from('referral_history').insert([{
+                    referrer: referrer.username,
+                    referred: referredUser.username,
+                    bonus_amount: commission,
+                    type: 'commission',
+                    date: new Date().toISOString()
+                }]);
             }
         }
 
@@ -854,6 +866,9 @@
             // Загружаем активный ивент
             await loadActiveEvent();
             
+            // Загружаем реферальную статистику
+            await loadReferralStats();
+            
             // Запускаем polling для ивентов
             startEventPolling();
             
@@ -871,7 +886,6 @@
             initRealtime(); 
             loadFriends();
             startQuestsTimer();
-            loadReferralStats();
             
             // Показываем приветственное сообщение
             if(u.balance < 1000) {
@@ -913,86 +927,142 @@
         }
 
         async function loadReferralStats() {
-            if (!u) return;
-            
-            // Загружаем рефералов пользователя
             const { data } = await sb
                 .from('referral_history')
                 .select('*')
-                .eq('referrer', u.username);
+                .eq('referrer', u.username)
+                .order('date', { ascending: false });
             
             referrals = data || [];
-            document.getElementById('referral-count').textContent = referrals.length;
             
-            // Обновляем реферальный код
-            document.getElementById('referral-code').value = u.referral_code || 'ОШИБКА';
-            
-            // Обновляем заработанную сумму
+            // Обновляем статистику
             const totalEarned = referrals.reduce((sum, ref) => sum + ref.bonus_amount, 0);
+            document.getElementById('referral-count').textContent = referrals.filter(r => r.type === 'invite').length;
             document.getElementById('referral-earned').textContent = totalEarned.toLocaleString() + ' BC';
             
+            // Обновляем реферальную ссылку и код
+            document.getElementById('referral-code').value = u.referral_code || 'ГЕНЕРАЦИЯ...';
+            document.getElementById('referral-link').value = `https://blackwin.ru/ref=${u.referral_code}`;
+            
             // Обновляем список рефералов
-            renderReferralList();
+            renderReferralsList();
         }
 
-        function renderReferralList() {
-            const container = document.getElementById('referral-list');
-            if (!container) return;
+        function renderReferralsList() {
+            const container = document.getElementById('referrals-list');
+            container.innerHTML = '';
             
-            if (referrals.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center text-xs">Пока никого нет</p>';
+            const uniqueReferrals = [];
+            const seen = new Set();
+            
+            referrals.forEach(ref => {
+                if (!seen.has(ref.referred)) {
+                    seen.add(ref.referred);
+                    uniqueReferrals.push(ref);
+                }
+            });
+            
+            if (uniqueReferrals.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-xs text-center py-4">У вас пока нет рефералов</p>';
                 return;
             }
             
-            container.innerHTML = referrals.map(ref => `
-                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-white/5">
-                    <div>
-                        <span class="font-bold">${ref.referred}</span>
-                        <p class="text-[8px] text-gray-500">${new Date(ref.date).toLocaleDateString()}</p>
+            uniqueReferrals.forEach(ref => {
+                const totalEarnedFromRef = referrals
+                    .filter(r => r.referred === ref.referred)
+                    .reduce((sum, r) => sum + r.bonus_amount, 0);
+                
+                const refHTML = `
+                    <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+                        <div>
+                            <p class="text-xs font-bold">${ref.referred}</p>
+                            <p class="text-[10px] text-gray-500">${new Date(ref.date).toLocaleDateString()}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-green-500 text-xs font-bold">+${totalEarnedFromRef.toLocaleString()} BC</p>
+                            <p class="text-[10px] text-gray-500">${ref.type === 'invite' ? 'Приглашение' : 'Комиссия'}</p>
+                        </div>
                     </div>
-                    <span class="text-green-500 font-bold">+${ref.bonus_amount} BC</span>
-                </div>
-            `).join('');
-        }
-
-        function copyReferralCode() {
-            const code = document.getElementById('referral-code').value;
-            navigator.clipboard.writeText(code).then(() => {
-                showCustomNotification('Скопировано', 'Реферальный код скопирован в буфер обмена');
+                `;
+                container.innerHTML += refHTML;
             });
         }
 
+        function copyReferralCode() {
+            const codeInput = document.getElementById('referral-code');
+            codeInput.select();
+            document.execCommand('copy');
+            showAlert("Успех", "Реферальный код скопирован!");
+        }
+
+        function copyReferralLink() {
+            const linkInput = document.getElementById('referral-link');
+            linkInput.select();
+            document.execCommand('copy');
+            showAlert("Успех", "Реферальная ссылка скопирована!");
+        }
+
         function openReferralModal() {
-            document.getElementById('referral-modal').classList.remove('hidden');
             loadReferralStats();
+            document.getElementById('referral-modal').classList.remove('hidden');
         }
 
         function closeReferralModal() {
             document.getElementById('referral-modal').classList.add('hidden');
         }
 
-        function openDepositModal() {
-            document.getElementById('deposit-modal').classList.remove('hidden');
+        function openWithdrawModal() {
+            document.getElementById('withdraw-modal').classList.remove('hidden');
         }
 
-        function closeDepositModal() {
-            document.getElementById('deposit-modal').classList.add('hidden');
+        function closeWithdrawModal() {
+            document.getElementById('withdraw-modal').classList.add('hidden');
         }
 
-        function setDepositAmount(amount) {
-            document.getElementById('deposit-amount').value = amount;
+        async function submitWithdraw() {
+            const amount = parseInt(document.getElementById('withdraw-amount').value);
+            const method = document.getElementById('withdraw-method').value;
+            const details = document.getElementById('withdraw-details').value.trim();
+            
+            if(!amount || amount < 50000) {
+                showAlert("Ошибка", "Минимальная сумма вывода: 50.000 BC");
+                return;
+            }
+            
+            if(amount > u.balance) {
+                showAlert("Ошибка", "Недостаточно средств на балансе");
+                return;
+            }
+            
+            if(!details) {
+                showAlert("Ошибка", "Введите реквизиты для вывода");
+                return;
+            }
+            
+            // Создаем заявку на вывод
+            const { data, error } = await sb.from('withdrawals').insert([{
+                username: u.username,
+                amount: amount,
+                method: method,
+                details: details,
+                status: 'pending',
+                date: new Date().toISOString()
+            }]).select().single();
+            
+            if(error) {
+                showAlert("Ошибка", "Ошибка при создании заявки: " + error.message);
+                return;
+            }
+            
+            // Списываем средства
+            await updateData(-amount, 0);
+            
+            closeWithdrawModal();
+            showModal("ЗАЯВКА ПРИНЯТА", `Заявка на вывод ${amount.toLocaleString()} BC создана. Ожидайте обработки в течение 24 часов.`);
         }
 
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showCustomNotification('Скопировано', 'Текст скопирован в буфер обмена');
-            });
-        }
-
-        function startDeposit() {
-            const amount = document.getElementById('deposit-amount').value;
-            closeDepositModal();
-            showModal("ПОПОЛНЕНИЕ", `Для пополнения на ${parseInt(amount).toLocaleString()} BC свяжитесь с администратором в Telegram: @BlackWinSupport_bot`);
+        function addBalance(amount) {
+            showModal("ПОПОЛНЕНИЕ БАЛАНСА", `Для пополнения на ${amount.toLocaleString()} BC свяжитесь с администратором в Telegram: @blackwin_support`);
         }
 
         // === СИСТЕМА ИВЕНТОВ ===
@@ -1083,10 +1153,7 @@
 
         // === РАСШИРЕННЫЕ АДМИН-КОМАНДЫ ===
         async function executeAdminCommand() {
-            if (!u.is_admin) {
-                showCustomNotification('Ошибка', 'У вас нет прав администратора!');
-                return;
-            }
+            if (!u.is_admin) return showAlert("Ошибка", "У вас нет прав администратора!");
             
             const input = document.getElementById('admin-input');
             const fullCmd = input.value.trim();
@@ -1108,20 +1175,20 @@
                     case '/setbc':
                         if (!targetNick || !value) throw "Формат: /setbc (ник) (число)";
                         await sb.from('profiles').update({ balance: parseInt(value) }).eq('username', targetNick);
-                        showCustomNotification('Успех', `Баланс ${targetNick} изменен на ${value}`);
+                        showAlert("Успех", `Баланс ${targetNick} изменен на ${value}`);
                         break;
 
                     case '/setxp':
                         if (!targetNick || !value) throw "Формат: /setxp (ник) (число)";
                         await sb.from('profiles').update({ xp: parseInt(value) }).eq('username', targetNick);
-                        showCustomNotification('Успех', `XP ${targetNick} изменен на ${value}`);
+                        showAlert("Успех", `XP ${targetNick} изменен на ${value}`);
                         break;
 
                     case '/setlevel':
                         if (!targetNick || !value) throw "Формат: /setlevel (ник) (уровень)";
                         const xpForLevel = (parseInt(value) - 1) * 1000;
                         await sb.from('profiles').update({ xp: xpForLevel }).eq('username', targetNick);
-                        showCustomNotification('Успех', `Уровень ${targetNick} изменен на ${value}`);
+                        showAlert("Успех", `Уровень ${targetNick} изменен на ${value}`);
                         break;
 
                     case '/globalalert':
@@ -1131,7 +1198,7 @@
                             sender: `АДМИНИСТРАТОР ${u.username}`, 
                             message: msg 
                         }]);
-                        showCustomNotification('Успех', 'Глобальное уведомление отправлено');
+                        showAlert("Успех", "Сообщение отправлено всем игрокам");
                         break;
 
                     case '/ban':
@@ -1142,13 +1209,13 @@
                             sender: 'СИСТЕМА',
                             message: `Игрок ${targetNick} заблокирован администратором ${u.username}. Причина: ${reason}`
                         }]);
-                        showCustomNotification('Успех', `Игрок ${targetNick} забанен`);
+                        showAlert("Успех", `Игрок ${targetNick} забанен`);
                         break;
 
                     case '/unban':
                         if (!targetNick) throw "Формат: /unban (ник)";
                         await sb.from('profiles').update({ is_banned: false, ban_reason: '' }).eq('username', targetNick);
-                        showCustomNotification('Успех', `Игрок ${targetNick} разбанен`);
+                        showAlert("Успех", `Игрок ${targetNick} разбанен`);
                         break;
 
                     case '/givekey':
@@ -1189,7 +1256,7 @@
                             text: `Администратор ${u.username} выдал вам ключ от ${caseType} кейса!`
                         }]);
                         
-                        showCustomNotification('Успех', `Ключ от ${caseType} кейса выдан игроку ${targetNick}`);
+                        showAlert("Успех", `Ключ от ${caseType} кейса выдан игроку ${targetNick}`);
                         break;
 
                     case '/event':
@@ -1230,7 +1297,7 @@
                         activeEvent = newEvent;
                         showEventIndicator();
                         
-                        showCustomNotification('Успех', `Ивент "${validEventType}" начат на ${duration} минут`);
+                        showAlert("Успех", `Ивент "${validEventType}" начат на ${duration} минут`);
                         break;
 
                     case '/stopevent':
@@ -1264,7 +1331,7 @@
                             hideEventIndicator();
                         }
                         
-                        showCustomNotification('Успех', `Ивент "${eventTypeToStop}" остановлен`);
+                        showAlert("Успех", `Ивент "${eventTypeToStop}" остановлен`);
                         break;
 
                     case '/giveall':
@@ -1284,7 +1351,7 @@
                             message: `Администратор ${u.username} выдал всем игрокам по ${amount.toLocaleString()} BC!` 
                         }]);
                         
-                        showCustomNotification('Успех', `Выдано всем игрокам по ${amount} BC`);
+                        showAlert("Успех", `Выдано всем игрокам по ${amount} BC`);
                         break;
 
                     case '/clearchat':
@@ -1293,7 +1360,7 @@
                             sender: 'СИСТЕМА', 
                             message: `Администратор ${u.username} очистил чат` 
                         }]);
-                        showCustomNotification('Успех', "Чат очищен");
+                        showAlert("Успех", "Чат очищен");
                         break;
 
                     case '/reset':
@@ -1306,7 +1373,7 @@
                             ban_reason: '',
                             vip_until: null
                         }).eq('username', targetNick);
-                        showCustomNotification('Успех', `Прогресс игрока ${targetNick} сброшен`);
+                        showAlert("Успех", `Прогресс игрока ${targetNick} сброшен`);
                         break;
 
                     case '/mute':
@@ -1322,13 +1389,13 @@
                             reason: extra || 'Нарушение правил чата'
                         }]);
                         
-                        showCustomNotification('Успех', `Игрок ${targetNick} заглушен на ${muteMinutes} минут`);
+                        showAlert("Успех", `Игрок ${targetNick} заглушен на ${muteMinutes} минут`);
                         break;
 
                     case '/unmute':
                         if (!targetNick) throw "Формат: /unmute (ник)";
                         await sb.from('muted_users').delete().eq('username', targetNick);
-                        showCustomNotification('Успех', `Игрок ${targetNick} разглушен`);
+                        showAlert("Успех", `Игрок ${targetNick} разглушен`);
                         break;
 
                     case '/addvip':
@@ -1340,7 +1407,7 @@
                             vip_until: vipUntilDate.toISOString() 
                         }).eq('username', targetNick);
                         
-                        showCustomNotification('Успех', `VIP статус выдан игроку ${targetNick} на 1 месяц`);
+                        showAlert("Успех", `VIP статус выдан игроку ${targetNick} на 1 месяц`);
                         break;
 
                     case '/removevip':
@@ -1349,7 +1416,7 @@
                             vip_until: null 
                         }).eq('username', targetNick);
                         
-                        showCustomNotification('Успех', `VIP статус снят с игрока ${targetNick}`);
+                        showAlert("Успех", `VIP статус снят с игрока ${targetNick}`);
                         break;
 
                     case '/rain':
@@ -1376,7 +1443,7 @@
                             message: `💰 ДЕНЕЖНЫЙ ДОЖДЬ! Администратор ${u.username} раздал ${rainAmount.toLocaleString()} BC между ${onlineUsers.length} игроками!` 
                         }]);
                         
-                        showCustomNotification('Успех', `Денежный дождь на ${rainAmount} BC проведен`);
+                        showAlert("Успех", `Денежный дождь на ${rainAmount} BC проведен`);
                         break;
 
                     case '/systeminfo':
@@ -1388,15 +1455,14 @@
                         const { data: totalBalance } = await sb.from('profiles').select('balance');
                         const systemBalance = totalBalance.reduce((sum, user) => sum + user.balance, 0);
                         
-                        showModal("СИСТЕМНАЯ ИНФОРМАЦИЯ", 
-                            `Всего игроков: ${userCount}\nОнлайн: ${onlineCount}\nОбщий баланс системы: ${systemBalance.toLocaleString()} BC`);
+                        showAlert("Информация о системе", `Всего игроков: ${userCount}\nОнлайн: ${onlineCount}\nОбщий баланс системы: ${systemBalance.toLocaleString()} BC`);
                         break;
 
                     default:
-                        showCustomNotification('Ошибка', "Неизвестная команда");
+                        showAlert("Ошибка", "Неизвестная команда");
                 }
             } catch (err) {
-                showCustomNotification('Ошибка', err);
+                showAlert("Ошибка", err);
             }
         }
 
@@ -1433,14 +1499,14 @@
             
             if (maintenance && maintenance.value === 'true') {
                 await sb.from('system_settings').update({ value: 'false' }).eq('key', 'maintenance');
-                showCustomNotification('Успех', "Технические работы завершены");
+                showAlert("Успех", "Технические работы завершены");
             } else {
                 await sb.from('system_settings').upsert([{
                     key: 'maintenance',
                     value: 'true',
                     updated_at: new Date().toISOString()
                 }]);
-                showCustomNotification('Успех', "Технические работы включены");
+                showAlert("Успех", "Технические работы включены");
             }
         }
 
@@ -1598,21 +1664,12 @@
             if(!code) return;
             
             const usedKey = `promo_${code}_${u.username}`;
-            if(localStorage.getItem(usedKey)) {
-                showCustomNotification('Ошибка', "Вы уже использовали этот промокод!");
-                return;
-            }
+            if(localStorage.getItem(usedKey)) return showAlert("Ошибка", "Вы уже использовали этот промокод!");
             
             const { data, error } = await sb.from('promo_codes').select('*').eq('code', code).single();
             
-            if(error || !data) {
-                showCustomNotification('Ошибка', "Промокод не найден!");
-                return;
-            }
-            if(data.uses_left <= 0) {
-                showCustomNotification('Ошибка', "Срок действия промокода истек!");
-                return;
-            }
+            if(error || !data) return showAlert("Ошибка", "Промокод не найден!");
+            if(data.uses_left <= 0) return showAlert("Ошибка", "Срок действия промокода истек!");
             
             await updateData(data.reward_bc, data.reward_xp);
             await sb.from('promo_codes').update({ uses_left: data.uses_left - 1 }).eq('code', code);
@@ -1634,7 +1691,7 @@
             const lvl = Math.floor(u.xp / 1000) + 1;
             
             if (claimedLevels.includes(lvl)) {
-                showCustomNotification('Ошибка', "Вы уже получили награду за этот уровень!");
+                showAlert("Ошибка", "Вы уже получили награду за этот уровень!");
                 return;
             }
             
@@ -1733,10 +1790,7 @@
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
             document.getElementById('s-'+n).classList.add('active');
             document.getElementById('n-'+n).classList.add('nav-active');
-            if(n === 'top') {
-                leaderboardType = 'balance';
-                showLeaderboard('balance');
-            }
+            if(n === 'top') loadTop();
             if(n === 'social') loadFriends();
         }
 
@@ -1767,6 +1821,11 @@
             u = data; 
             localStorage.setItem('bw_session', JSON.stringify(u));
             updateUI();
+            
+            // Начисляем комиссию рефереру за выигрыши
+            if (b > 0 && u.referred_by) {
+                await addReferralCommission(u, b);
+            }
             
             if (bonusMultiplier > 1 && (b !== 0 || x !== 0)) {
                 const bonusText = bonusMultiplier === 2 ? 'x2' : 'x1.5';
@@ -1806,23 +1865,24 @@
             const betAmount = parseInt(betInput.value);
             
             if (!betAmount || betAmount <= 0) {
-                showCustomNotification('Ошибка', "Введите корректную сумму ставки!");
+                showAlert("Ошибка", "Введите корректную сумму ставки!");
                 return;
             }
             
             if (betAmount > u.balance) {
-                showCustomNotification('Ошибка', "Недостаточно BC для ставки!");
+                showAlert("Ошибка", "Недостаточно BC для ставки!");
                 return;
             }
             
             if (betAmount < 100) {
-                showCustomNotification('Ошибка', "Минимальная ставка: 100 BC!");
+                showAlert("Ошибка", "Минимальная ставка: 100 BC!");
                 return;
             }
             
             closeBinaryModal();
             
-            const win = Math.random() > 0.5;
+            // Шанс 49.5% на выигрыш (дом 1%)
+            const win = Math.random() < 0.495;
             const userWin = (choice === 'red' && win) || (choice === 'black' && !win);
             
             if (userWin) {
@@ -1869,17 +1929,17 @@
             const betAmount = parseInt(betInput.value);
             
             if (!betAmount || betAmount <= 0) {
-                showCustomNotification('Ошибка', "Введите корректную сумму ставки!");
+                showAlert("Ошибка", "Введите корректную сумму ставки!");
                 return;
             }
             
             if (betAmount > u.balance) {
-                showCustomNotification('Ошибка', "Недостаточно BC для ставки!");
+                showAlert("Ошибка", "Недостаточно BC для ставки!");
                 return;
             }
             
             if (betAmount < 100) {
-                showCustomNotification('Ошибка', "Минимальная ставка: 100 BC!");
+                showAlert("Ошибка", "Минимальная ставка: 100 BC!");
                 return;
             }
             
@@ -1888,9 +1948,10 @@
             const random = Math.random() * 100;
             let result = '';
             
-            if (random < 48) {
+            // Вероятности: красное 48.5%, черное 48.5%, зеленое 3%
+            if (random < 48.5) {
                 result = 'red';
-            } else if (random < 96) {
+            } else if (random < 97) {
                 result = 'black';
             } else {
                 result = 'green';
@@ -1933,17 +1994,61 @@
 
         // === НОВЫЕ ИГРЫ ===
         async function playCoinFlip() {
-            showModal("МОНЕТКА", "В разработке... Скоро!");
+            const result = await showConfirm("МОНЕТКА", "Выберите сторону: ОК - Орел, ОТМЕНА - Решка");
+            if (result === null) return;
+            
+            const betAmount = prompt("Введите сумму ставки (мин. 100 BC):", "1000");
+            const amount = parseInt(betAmount);
+            
+            if (!amount || amount < 100 || amount > u.balance) {
+                showAlert("Ошибка", "Некорректная сумма ставки!");
+                return;
+            }
+            
+            const userChoice = result ? 'heads' : 'tails';
+            const coinResult = Math.random() > 0.5 ? 'heads' : 'tails';
+            
+            if (userChoice === coinResult) {
+                await updateData(amount, 80);
+                showModal("МОНЕТКА", `ПОБЕДА! Выпал ${coinResult === 'heads' ? 'ОРЁЛ' : 'РЕШКА'}. +${amount} BC!`);
+            } else {
+                await updateData(-amount, 20);
+                showModal("МОНЕТКА", `ПРОИГРЫШ! Выпал ${coinResult === 'heads' ? 'ОРЁЛ' : 'РЕШКА'}. -${amount} BC`);
+            }
         }
 
         async function playDice() {
-            showModal("КОСТИ", "В разработке... Скоро!");
+            const betAmount = prompt("Введите сумму ставки (мин. 100 BC):", "1000");
+            const amount = parseInt(betAmount);
+            
+            if (!amount || amount < 100 || amount > u.balance) {
+                showAlert("Ошибка", "Некорректная сумма ставки!");
+                return;
+            }
+            
+            const userGuess = parseInt(prompt("Угадайте число от 1 до 6:", "3"));
+            
+            if (!userGuess || userGuess < 1 || userGuess > 6) {
+                showAlert("Ошибка", "Некорректное число!");
+                return;
+            }
+            
+            const diceResult = Math.floor(Math.random() * 6) + 1;
+            
+            if (userGuess === diceResult) {
+                const winAmount = amount * 6;
+                await updateData(winAmount, 150);
+                showModal("КОСТИ", `ПОБЕДА! Выпало ${diceResult}. Вы угадали! +${winAmount} BC (x6)!`);
+            } else {
+                await updateData(-amount, 20);
+                showModal("КОСТИ", `ПРОИГРЫШ! Выпало ${diceResult}, вы выбрали ${userGuess}. -${amount} BC`);
+            }
         }
 
         // === СИСТЕМА ЗАДАНИЙ ===
         function openQuestsModal() {
             if (!questsData) {
-                showCustomNotification('Ошибка', "Загрузка заданий...");
+                showAlert("Информация", "Загрузка заданий...");
                 return;
             }
             
@@ -2030,10 +2135,7 @@
         // === ОСТАЛЬНЫЕ ФУНКЦИИ ===
         function startHL() {
             const bet = parseInt(document.getElementById('hl-bet').value);
-            if(u.balance < bet) {
-                showCustomNotification('Ошибка', "Недостаточно BC!");
-                return;
-            }
+            if(u.balance < bet) return showAlert("Ошибка", "Недостаточно BC");
             hlBase = Math.floor(Math.random() * 80) + 10;
             document.getElementById('hl-num').innerText = hlBase;
             document.getElementById('hl-setup').classList.add('hidden');
@@ -2059,17 +2161,11 @@
             if(!amt || amt <= 0) return;
             let nB = u.balance, nBK = u.bank_balance;
             if(type === 'dep') {
-                if(amt > u.balance) {
-                    showCustomNotification('Ошибка', "Недостаточно средств на балансе!");
-                    return;
-                }
+                if(amt > u.balance) return showAlert("Ошибка", "Недостаточно средств на балансе");
                 nB -= amt; nBK += amt;
                 updateQuestProgress('deposit_bank', amt);
             } else {
-                if(amt > u.bank_balance) {
-                    showCustomNotification('Ошибка', "Недостаточно средств в банке!");
-                    return;
-                }
+                if(amt > u.bank_balance) return showAlert("Ошибка", "Недостаточно средств в банке");
                 nB += amt; nBK -= amt;
             }
             const { data } = await sb.from('profiles').update({ balance: nB, bank_balance: nBK }).eq('username', u.username).select().single();
@@ -2090,7 +2186,7 @@
                 .single();
             
             if (muted) {
-                showCustomNotification('Ошибка', `Вы заглушены до ${new Date(muted.mute_until).toLocaleString()}. Причина: ${muted.reason}`);
+                showAlert("Ошибка", `Вы заглушены до ${new Date(muted.mute_until).toLocaleString()}. Причина: ${muted.reason}`);
                 return;
             }
             
@@ -2197,7 +2293,7 @@
             
             // Проверка VIP статуса
             if (c.vipOnly && !hasVipKey) {
-                showCustomNotification('Ошибка', "Этот кейс доступен только для VIP игроков!");
+                showAlert("Ошибка", "Этот кейс доступен только для VIP игроков!");
                 return;
             }
             
@@ -2205,7 +2301,7 @@
             if (c.minLevel) {
                 const userLevel = Math.floor(u.xp / 1000) + 1;
                 if (userLevel < c.minLevel) {
-                    showCustomNotification('Ошибка', `Для открытия этого кейса требуется ${c.minLevel} уровень!`);
+                    showAlert("Ошибка", `Для открытия этого кейса требуется ${c.minLevel} уровень!`);
                     return;
                 }
             }
@@ -2228,7 +2324,7 @@
             }
             
             if(u.balance < finalPrice) {
-                showCustomNotification('Ошибка', "Недостаточно BC");
+                showAlert("Ошибка", "Недостаточно BC");
                 return;
             }
             
@@ -2300,20 +2396,17 @@
 
         async function sendFriendReq() {
             const to = document.getElementById('target-nick').value.trim().toUpperCase();
-            if(!to || to === u.username) {
-                showCustomNotification('Ошибка', "Введите корректный никнейм!");
-                return;
-            }
+            if(!to || to === u.username) return;
             
             const { data: targetExists } = await sb.from('profiles').select('username').eq('username', to).single();
             if(!targetExists) {
-                showCustomNotification('Ошибка', "Игрок не найден!");
+                showAlert("Ошибка", "Игрок не найден!");
                 return;
             }
             
             await sb.from('interactions').insert([{ from_user: u.username, to_user: to, type: 'friend_req' }]);
             updateQuestProgress('add_friend', 1);
-            showCustomNotification('Успех', "Запрос в друзья отправлен!");
+            showAlert("Успех", "Запрос в друзья отправлен!");
         }
 
         async function loadFriends() {
@@ -2327,66 +2420,38 @@
             }).join('');
         }
 
-        async function showLeaderboard(type) {
-            leaderboardType = type;
-            
-            // Обновляем активные кнопки
-            document.querySelectorAll('#s-top button').forEach(btn => {
-                btn.classList.remove('red-btn');
-                btn.classList.add('bg-white/10');
-            });
-            
-            if (type === 'balance') {
-                document.querySelector('#s-top button:nth-child(1)').classList.add('red-btn');
-                document.querySelector('#s-top button:nth-child(1)').classList.remove('bg-white/10');
-            } else if (type === 'xp') {
-                document.querySelector('#s-top button:nth-child(2)').classList.add('red-btn');
-                document.querySelector('#s-top button:nth-child(2)').classList.remove('bg-white/10');
-            } else {
-                document.querySelector('#s-top button:nth-child(3)').classList.add('red-btn');
-                document.querySelector('#s-top button:nth-child(3)').classList.remove('bg-white/10');
-            }
-            
-            let orderBy = '';
-            if (type === 'balance') orderBy = 'balance';
-            else if (type === 'xp') orderBy = 'xp';
-            else orderBy = 'referral_count';
-            
+        async function loadTop() {
             const { data } = await sb.from('profiles')
-                .select('username, balance, xp, vip_until, referral_count')
-                .order(orderBy, { ascending: false })
-                .limit(20);
+                .select('username, balance, xp, vip_until, referral_code')
+                .order('balance', { ascending: false })
+                .limit(15);
             
             const box = document.getElementById('leaderboard');
-            box.innerHTML = '';
             
-            data.forEach((it, i) => {
+            box.innerHTML = `
+                <div class="py-6 text-center">
+                    <h2 class="font-black text-2xl italic text-red-600 uppercase tracking-tighter">ТОП 15 БОГАТЫХ</h2>
+                    <p class="text-[9px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">ИГРОКОВ Black Win</p>
+                </div>
+            ` + data.map((it, i) => {
                 const lvl = Math.floor(it.xp / 1000) + 1;
                 const isVip = it.vip_until && new Date(it.vip_until) > new Date();
-                let value = '';
                 
-                if (type === 'balance') value = it.balance.toLocaleString() + ' BC';
-                else if (type === 'xp') value = it.xp.toLocaleString() + ' XP';
-                else value = it.referral_count + ' реф.';
-                
-                const item = document.createElement('div');
-                item.className = `leaderboard-item ${i < 3 ? 'border-red-600' : ''}`;
-                item.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <span class="font-black text-red-600 w-6 text-sm">#${i+1}</span>
-                            <div class="ml-4">
-                                <p class="font-bold uppercase text-xs leading-none">${it.username} ${isVip ? '👑' : ''}</p>
-                                <p class="text-[8px] text-gray-500 font-black mt-1 uppercase tracking-wider">Level: ${lvl}</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <span class="font-black italic text-white text-sm">${value}</span>
+                return `
+                <div class="glass p-4 rounded-2xl flex justify-between items-center mb-2 border-r-2 ${i < 3 ? 'border-red-600' : 'border-transparent'} animate__animated animate__fadeInUp">
+                    <div class="flex items-center">
+                        <span class="font-black text-red-600 w-6 text-sm">#${i+1}</span>
+                        <div class="ml-4">
+                            <p class="font-bold uppercase text-xs leading-none">${it.username} ${isVip ? '👑' : ''}</p>
+                            <p class="text-[8px] text-gray-500 font-black mt-1 uppercase tracking-wider">Level: <span class="text-white">${lvl}</span></p>
                         </div>
                     </div>
-                `;
-                box.appendChild(item);
-            });
+                    <div class="text-right">
+                        <span class="font-black italic text-white text-sm">${it.balance.toLocaleString()}</span>
+                        <span class="text-[8px] font-black text-red-600 ml-1 italic">BC</span>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         function initRealtime() {
@@ -2415,7 +2480,8 @@
                 const r = p.new;
                 if(r.to_user !== u.username) return;
                 if(r.type === 'friend_req') {
-                    if(confirm(`Игрок ${r.from_user} хочет в друзья. Принять?`)) {
+                    const result = await showConfirm("Запрос в друзья", `Игрок ${r.from_user} хочет в друзья. Принять?`);
+                    if(result) {
                         await sb.from('friendships').insert([{ user1: r.from_user, user2: u.username }]);
                         loadFriends();
                     }
@@ -2424,21 +2490,22 @@
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_alerts' }, p => {
                 triggerBroadcast(p.new.sender, p.new.message);
             })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'referral_history' }, p => {
-                if (p.new.referrer === u.username) {
-                    referrals.push(p.new);
-                    loadReferralStats();
-                }
-            })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, p => {
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, async p => {
                 if (u && p.new.username === u.username) {
                     u = p.new;
                     localStorage.setItem('bw_session', JSON.stringify(u));
                     checkBanStatus();
                     updateUI();
+                    
+                    // Обновляем лидерборд если он открыт
+                    if (document.getElementById('s-top').classList.contains('active')) {
+                        await loadTop();
+                    }
                 }
-                if (leaderboardType && document.getElementById('s-top').classList.contains('active')) {
-                    showLeaderboard(leaderboardType);
+                
+                // Обновляем лидерборд при изменении балансов
+                if (document.getElementById('s-top').classList.contains('active')) {
+                    await loadTop();
                 }
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'active_events' }, async p => {
@@ -2448,6 +2515,11 @@
                 if (activeEvent && activeEvent.id === p.old.id) {
                     activeEvent = null;
                     hideEventIndicator();
+                }
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'referral_history' }, async p => {
+                if (p.new.referrer === u.username) {
+                    await loadReferralStats();
                 }
             })
             .subscribe();
